@@ -1,47 +1,144 @@
-Academic and Educational Use License
+Academic and Educational Use License v1.0
 
-Copyright (c) 2025 rubato103
+Copyright (c) 2025 Yang Yeondong (양연동)
+Repository: https://github.com/rubato103/textmining_KCI_RISS
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to use,
-copy, modify, and distribute the Software for ACADEMIC and EDUCATIONAL purposes only,
-subject to the following conditions:
+================================================================================
+PREAMBLE
+================================================================================
 
-PERMITTED USES:
-- Academic research and scholarly publications
-- Educational purposes in schools, universities, and other educational institutions
-- Non-profit research activities
-- Personal study and learning
-- Academic collaboration and knowledge sharing
+This license is designed to promote academic collaboration and educational use
+while protecting the intellectual property rights of the author and ensuring
+proper academic attribution.
 
-PROHIBITED USES:
-- Commercial use, including but not limited to:
-  * Selling the Software or derivative works
-  * Using the Software in commercial products or services
-  * Using the Software for commercial consulting or analysis services
-  * Any use that generates revenue or commercial benefit
+================================================================================
+GRANT OF LICENSE
+================================================================================
 
-CITATION REQUIREMENTS:
-1. This Software: Korean Morpheme Analysis Pipeline for KCI/RISS Data. (2025). 
-   GitHub Repository. https://github.com/rubato103/textming_KCI_RISS
+Permission is hereby granted, free of charge, to any person or institution
+obtaining a copy of this software and associated documentation files (the
+"Software"), to use, copy, modify, merge, and distribute the Software solely
+for ACADEMIC and EDUCATIONAL purposes, subject to the conditions below.
 
-2. Kiwi Morphological Analyzer: 이민철. (2024). Kiwi: 통계적 언어 모델과 Skip-Bigram을 
-   이용한 한국어 형태소 분석기 구현. 디지털인문학, 1(1), 109-136. 
+================================================================================
+PERMITTED USES
+================================================================================
+
+1. ACADEMIC RESEARCH
+   - Scholarly research and analysis
+   - Academic publications and presentations
+   - Thesis and dissertation work
+   - Peer-reviewed journal articles
+
+2. EDUCATIONAL PURPOSES
+   - Teaching in academic institutions
+   - Student coursework and projects
+   - Academic workshops and seminars
+   - Non-profit educational programs
+
+3. NON-COMMERCIAL RESEARCH
+   - Public research institutions
+   - Non-profit research organizations
+   - Individual scholarly research
+   - Open science initiatives
+
+================================================================================
+PROHIBITED USES
+================================================================================
+
+The following uses are strictly prohibited without a separate commercial license:
+
+1. COMMERCIAL EXPLOITATION
+   - Integration into commercial software or services
+   - Use in for-profit consulting or analysis services
+   - Sale or licensing of the Software or derivatives
+   - Use in proprietary commercial products
+
+2. REVENUE GENERATION
+   - Any use that directly generates revenue
+   - Commercial training or workshops
+   - Paid data analysis services
+   - Commercial research contracts
+
+================================================================================
+ATTRIBUTION AND CITATION REQUIREMENTS
+================================================================================
+
+Any use of this Software requires the following citations:
+
+1. PRIMARY CITATION (Required)
+   Yang, Y. (2025). Text Mining of Korean Academic Data using R.
+   GitHub Repository. https://github.com/rubato103/textmining_KCI_RISS
+   
+   국문: 양연동. (2025). R을 이용한 한국어 학술데이터 텍스트마이닝.
+   GitHub Repository. https://github.com/rubato103/textmining_KCI_RISS
+
+2. COMPONENT CITATIONS (Required when using respective components)
+   
+   Kiwi Morphological Analyzer:
+   이민철. (2024). Kiwi: 통계적 언어 모델과 Skip-Bigram을 이용한 
+   한국어 형태소 분석기 구현. 디지털인문학, 1(1), 109-136.
    https://doi.org/10.23287/KJDH.2024.1.1.6
 
-CONDITIONS:
-- The above copyright notice, this permission notice, and citation requirements 
-  shall be included in all copies or substantial portions of the Software.
-- Any publications or presentations using this Software must include proper citations.
-- Modified versions must clearly indicate the modifications made.
+================================================================================
+CONDITIONS AND OBLIGATIONS
+================================================================================
 
-COMMERCIAL LICENSING:
-For commercial use, please contact the repository owner for a separate commercial license.
+1. COPYRIGHT NOTICE
+   - Retain all copyright notices in the Software
+   - Include this license in all copies or substantial portions
+
+2. MODIFICATIONS
+   - Clearly document all modifications made
+   - Indicate the date and nature of changes
+   - Maintain a changelog for substantial modifications
+
+3. REDISTRIBUTION
+   - Include complete citation requirements
+   - Preserve the academic use restriction
+   - Provide access to the original source
+
+4. ACADEMIC INTEGRITY
+   - Acknowledge the Software's contribution in research
+   - Do not misrepresent authorship or origin
+   - Maintain ethical research standards
+
+================================================================================
+COMMERCIAL LICENSING
+================================================================================
+
+For commercial use, including but not limited to enterprise deployment,
+commercial services, or revenue-generating applications, please contact:
+
+Email: rubato103@dodaseo.cc
+Subject: Commercial License Inquiry - textmining_KCI_RISS
+
+================================================================================
+DISCLAIMER OF WARRANTY
+================================================================================
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM,
+OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+================================================================================
+TERMINATION
+================================================================================
+
+This license automatically terminates if you fail to comply with its terms and
+conditions. Upon termination, you must cease all use and distribution of the
+Software and destroy all copies in your possession.
+
+================================================================================
+GOVERNING LAW
+================================================================================
+
+This license shall be governed by the laws of the Republic of Korea, without
+regard to conflict of law principles.
+
+Effective Date: January 9, 2025
+License Version: 1.0
