@@ -5,7 +5,6 @@ title: "R을 이용한 한국어 학술데이터 텍스트마이닝"
 authors:
   - family-names: "양"
     given-names: "연동"
-    orcid: "https://orcid.org/0000-0000-0000-0000"
     email: "rubato103@dodaseo.cc"
 repository-code: "https://github.com/rubato103/textmining_KCI_RISS"
 url: "https://github.com/rubato103/textmining_KCI_RISS"
