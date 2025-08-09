@@ -2,38 +2,38 @@
 
 한국어 학술 논문 데이터를 대상으로 한 형태소 분석, N그램 추출, 토픽 모델링 통합 파이프라인
 
-## 🎯 프로젝트 개요
+## 프로젝트 개요
 
 ### 주요 기능
-- **다중 데이터 소스 지원**: KCI, RISS Excel 데이터 자동 통합
-- **고성능 형태소 분석**: Kiwipiepy + CoNg 모델 병렬 처리
+- **다중 데이터 소스 지원**: KCI 및 RISS Excel 데이터 자동 통합
+- **고성능 형태소 분석**: Kiwipiepy 및 CoNg 모델 병렬 처리
 - **사용자 사전 최적화**: N그램 분석 기반 복합명사 자동 추천
-- **STM 토픽 모델링**: 메타데이터 기반 시계열 및 카테고리 분석
-- **완전 자동화**: 대화형 인터페이스로 원클릭 실행
+- **STM 토픽 모델링**: 메타데이터 기반 시계열 및 범주 분석
+- **완전 자동화**: 대화형 인터페이스를 통한 원클릭 실행
 
 ### 기술 스택
-- **언어**: R 4.5.1+
+- **언어**: R 4.5.1 이상
 - **형태소 분석기**: Kiwipiepy, CoNg 모델
 - **토픽 모델링**: STM (Structural Topic Model)
 - **병렬 처리**: R parallel 패키지
 - **시각화**: ggplot2, wordcloud
 
-## 📁 프로젝트 구조
+## 프로젝트 구조
 
 ```
 textming_KCI_RISS/
-├── scripts/                 # 📊 모든 R 스크립트
+├── scripts/                 # 모든 R 스크립트
 ├── data/
-│   ├── raw_data/            # 원본 Excel 데이터 (gitignore)
-│   ├── processed/           # 처리된 결과 (gitignore)
-│   └── dictionaries/        # 사용자 사전 (gitignore)
-├── reports/                 # 분석 보고서 (gitignore)
-├── CITATION.md              # 📖 인용 가이드
-├── LICENSE                  # ⚖️ 라이선스 정보
-└── cong-base/              # CoNg 모델 (gitignore)
+│   ├── raw_data/            # 원본 Excel 데이터 (Git 추적 제외)
+│   ├── processed/           # 처리된 결과 (Git 추적 제외)
+│   └── dictionaries/        # 사용자 사전 (Git 추적 제외)
+├── reports/                 # 분석 보고서 (Git 추적 제외)
+├── CITATION.md              # 인용 가이드
+├── LICENSE                  # 라이선스 정보
+└── cong-base/              # CoNg 모델 (Git 추적 제외)
 ```
 
-## 🚀 빠른 시작
+## 빠른 시작
 
 ### 1. 환경 설정
 ```r
@@ -56,7 +56,7 @@ pip install kiwipiepy
 source("scripts/00_run_pipeline.R")
 ```
 
-## 📋 상세 워크플로우
+## 상세 워크플로우
 
 ### 1단계: 데이터 로딩 및 표준화
 ```r
@@ -96,9 +96,9 @@ source("scripts/05_stm_topic_modeling.R")
 ```
 - 메타데이터 기반 토픽 모델링
 - 시계열 분석 (prevalence ~ pub_year)
-- 카테고리별 분석 (content ~ 등재정보)
+- 범주별 분석 (content ~ 등재정보)
 
-## 🎨 주요 특징
+## 주요 특징
 
 ### 다중 데이터 소스 호환성
 - **KCI**: 고유 논문 ID 기반
@@ -115,7 +115,7 @@ source("scripts/05_stm_topic_modeling.R")
 - **빈도 필터링**: 의미 있는 용어만 선별
 - **사용자 검토**: 수동 검토 후 사전 등록
 
-## 📊 분석 결과 예시
+## 분석 결과 예시
 
 ### 형태소 분석 성과 (RISS 데이터)
 - **처리 문서**: 302개 (성공률 100%)
@@ -124,10 +124,10 @@ source("scripts/05_stm_topic_modeling.R")
 
 ### STM 토픽 모델링 준비도
 - **메타데이터 완성도**: 4/4 (100%)
-- **시계열 분석**: 1974~2025년 (51년간)
-- **카테고리 분석**: 등재정보 7개 범주
+- **시계열 분석**: 1974-2025년 (51년간)
+- **범주 분석**: 등재정보 7개 범주
 
-## ⚙️ 설정 및 커스터마이징
+## 설정 및 커스터마이징
 
 ### config.R 주요 설정
 ```r
@@ -152,17 +152,17 @@ export INTERACTIVE_MODE=false
 export USE_USER_DICT=true
 ```
 
-## 🤝 기여하기
+## 기여하기
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+1. 저장소 포크 (Fork the repository)
+2. 기능 브랜치 생성 (Create a feature branch)
+3. 변경 사항 커밋 (Commit your changes)
+4. 브랜치 푸시 (Push to the branch)
+5. 풀 리퀘스트 생성 (Create a Pull Request)
 
-## 📖 인용 (Citation)
+## 인용 (Citation)
 
-**🚨 중요**: 이 코드를 사용하실 때는 반드시 인용 표기해주세요!
+**중요**: 본 코드를 활용할 경우 반드시 인용 표기 바랍니다.
 
 ### 이 파이프라인 인용
 ```
@@ -176,32 +176,31 @@ GitHub Repository. https://github.com/rubato103/textming_KCI_RISS
 디지털인문학, 1(1), 109-136. https://doi.org/10.23287/KJDH.2024.1.1.6
 ```
 
-**📋 상세한 인용 가이드**: [CITATION.md](CITATION.md)
+**상세한 인용 가이드**: [CITATION.md](CITATION.md)
 
-## 📝 라이선스
+## 라이선스
 
-이 프로젝트는 **학술 및 교육용 라이선스**를 따릅니다.
+본 프로젝트는 **학술 및 교육용 라이선스**를 따릅니다.
 
-### ✅ 허용되는 사용
-- 🎓 **학술 연구** 및 논문 발표
-- 📚 **교육 목적** (대학, 학교 등)
-- 🔬 **비영리 연구** 활동
-- 📖 **개인 학습** 및 연구
+### 허용되는 사용
+- **학술 연구** 및 논문 발표
+- **교육 목적** (대학, 학교 등)
+- **비영리 연구** 활동
+- **개인 학습** 및 연구
 
-### ❌ 금지되는 사용  
-- 💼 **상업적 이용** (컨설팅, 분석 서비스 등)
-- 💰 **수익 창출** 목적 사용
-- 🏢 **기업 제품/서비스**에 포함
+### 금지되는 사용  
+- **상업적 이용** (컨설팅, 분석 서비스 등)
+- **수익 창출** 목적 사용
+- **기업 제품/서비스**에 포함
 
-### 💡 상업적 이용을 원하시나요?
-별도의 상업용 라이선스에 대해 문의해주세요: [GitHub Issues](../../issues)
+### 상업적 이용 문의
+별도의 상업용 라이선스에 대해 문의 바랍니다: [GitHub Issues](../../issues)
 
-## 📧 연락처
+## 연락처
 
-- 인용 관련 문의: [GitHub Issues](../../issues)
-- 기술적 문의: [GitHub Discussions](../../discussions)
+- 문의: rubato103@dodaseo.cc
 
-## 🔧 문제 해결
+## 문제 해결
 
 ### 일반적인 문제들
 

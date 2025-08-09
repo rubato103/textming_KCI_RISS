@@ -1,10 +1,10 @@
-# 📖 인용 가이드 (Citation Guide)
+# 인용 가이드 (Citation Guide)
 
-## 🚨 중요 공지
+## 중요 공지
 
-**이 코드를 사용하실 때는 반드시 아래와 같이 인용 표기해주세요.**
+본 코드를 활용할 경우 반드시 아래와 같이 인용 표기 바랍니다.
 
-## 📝 인용 형식
+## 인용 형식
 
 ### 학술 논문에서 사용시
 ```
@@ -35,24 +35,24 @@ GitHub. https://github.com/rubato103/textming_KCI_RISS
 GitHub 저장소. https://github.com/rubato103/textming_KCI_RISS
 ```
 
-## 🎯 인용 필수 상황
+## 인용 필수 상황
 
-다음과 같은 경우 **반드시** 인용 표기가 필요합니다:
+다음과 같은 경우 인용 표기가 필수적입니다:
 
-### ✅ 인용 필수 사례
-- 🔬 **학술 연구**: 논문, 학회 발표, 학위 논문 등
-- 📚 **교육 자료**: 강의, 교재, 워크샵 등  
-- 💼 **상업적 활용**: 컨설팅, 분석 서비스 등
-- 🌐 **블로그/웹사이트**: 기술 블로그, 튜토리얼 등
-- 💻 **소프트웨어 개발**: 다른 프로젝트에 코드 포함시
+### 인용 필수 사례
+- **학술 연구**: 논문, 학회 발표, 학위 논문 등
+- **교육 자료**: 강의, 교재, 워크샵 등  
+- **상업적 활용**: 컨설팅, 분석 서비스 등
+- **블로그/웹사이트**: 기술 블로그, 튜토리얼 등
+- **소프트웨어 개발**: 다른 프로젝트에 코드 포함시
 
-### 📋 인용시 포함 요소
+### 인용시 포함 요소
 1. **저자**: 양연동 (Yang, Yeondong)
 2. **제목**: R을 이용한 한국어 학술데이터 텍스트마이닝
 3. **URL**: https://github.com/rubato103/textming_KCI_RISS
 4. **연도**: 2025
 
-## 🌟 감사 표시 (Acknowledgment) 예시
+## 감사 표시 (Acknowledgment) 예시
 
 ### 논문 감사의 글에서
 ```
@@ -67,7 +67,7 @@ This project uses the Text Mining Korean Academic Data using R pipeline develope
 GitHub: https://github.com/rubato103/textming_KCI_RISS
 ```
 
-## ⚖️ 라이선스 정보
+## 라이선스 정보
 
 - **라이선스**: Academic and Educational Use License
 - **학술/교육 이용**: 허용 (인용 표기시)
@@ -75,16 +75,15 @@ GitHub: https://github.com/rubato103/textming_KCI_RISS
 - **수정/배포**: 허용 (학술/교육 목적만)
 - **보증**: 없음 (AS-IS 제공)
 
-### 🚨 중요 안내
+### 중요 안내
 이 소프트웨어는 **학술 및 교육 목적으로만** 사용할 수 있습니다.
 상업적 이용을 원하시는 경우 별도 문의해주세요.
 
-## 📧 연락처
+## 연락처
 
-- 인용 관련 문의: GitHub Issues
-- 기술적 문의: GitHub Discussions
+- 문의: rubato103@dodaseo.cc
 
-## 🔧 의존성 라이브러리 인용
+## 의존성 라이브러리 인용
 
 이 프로젝트는 다음 라이브러리들을 사용합니다. **해당 라이브러리들도 함께 인용해주세요.**
 
@@ -135,7 +134,7 @@ Korean Journal of Digital Humanities, 1(1), 109-136. https://doi.org/10.23287/KJ
 - **STM**: Roberts, M. E., Stewart, B. M., & Tingley, D. (2019). stm: An R Package for Structural Topic Models. Journal of Statistical Software, 91(2), 1-40.
 - **Kiwipiepy**: Python wrapper for Kiwi morphological analyzer
 
-## 📋 완전한 인용 예시
+## 완전한 인용 예시
 
 ### 학술 논문에서 모든 도구를 인용하는 경우
 
@@ -155,9 +154,6 @@ performed using the Kiwi analyzer (Lee, 2024) and topic modeling using
 the STM package (Roberts et al., 2019).
 ```
 
-## 🙏 마지막 당부
+## 마지막 당부
 
-이 코드가 여러분의 연구와 프로젝트에 도움이 되기를 바랍니다. 
-**올바른 인용은 오픈소스 생태계를 건강하게 유지하는 중요한 요소입니다.**
-특히 Kiwi 형태소 분석기 개발자의 학술적 기여를 인정하여 **반드시 인용**해주세요.
-감사합니다! 🚀
+본 코드가 연구 및 프로젝트에 기여하기를 바랍니다. 올바른 인용은 오픈소스 생태계 유지에 중요합니다. 특히 Kiwi 형태소 분석기 개발자의 학술적 기여를 인정하여 반드시 인용 바랍니다.
