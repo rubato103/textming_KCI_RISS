@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use this software in your work, please cite it using the following metadata."
+type: software
+title: "R을 이용한 한국어 학술데이터 텍스트마이닝"
+authors:
+  - family-names: "양"
+    given-names: "연동"
+    orcid: "https://orcid.org/0000-0000-0000-0000"
+    email: "rubato103@dodaseo.cc"
+repository-code: "https://github.com/rubato103/textmining_KCI_RISS"
+url: "https://github.com/rubato103/textmining_KCI_RISS"
+abstract: "한국어 학술 논문 데이터를 대상으로 한 형태소 분석, N그램 추출, 토픽 모델링 통합 파이프라인"
+keywords:
+  - text mining
+  - Korean NLP
+  - academic data analysis
+  - topic modeling
+  - KCI
+  - RISS
+  - R
+license: "Academic and Educational Use"
+version: "1.0.0"
+date-released: "2025-01-09"
