@@ -1,0 +1,67 @@
+# 한국어 형태소 분석 프로젝트 .gitignore
+# 작성일: 2025-01-09
+
+# ========== 데이터 파일 제외 ==========
+# 원본 데이터 (개인정보 및 저작권 보호)
+data/raw_data/*.xls
+data/raw_data/*.xlsx
+data/raw_data/*.csv
+
+# 처리된 분석 결과 (크기가 크고 개인별로 다름)
+data/processed/*.rds
+data/processed/*.csv
+data/dictionaries/*.txt
+
+# 사전 후보 파일들 (개인별 분석 결과)
+data/dictionaries/dict_candidates/*.csv
+
+# ========== 모델 및 임시 파일 ==========
+# CoNg 모델 (크기가 크고 별도 설치 필요)
+cong-base/
+
+# R 임시 파일들
+.RData
+.Rhistory
+*.Rproj.user
+Rplots.pdf
+
+# ========== 보고서 및 시각화 결과 ==========
+# 분석 보고서들 (개인별 결과)
+reports/*.md
+reports/*.png
+reports/*.jpg
+
+# ========== 아카이브 폴더 ==========
+# 정리된 파일들 (GitHub에 불필요)
+cleanup_archive/
+
+# ========== 시스템 파일 ==========
+# Windows
+Thumbs.db
+Desktop.ini
+
+# macOS
+.DS_Store
+
+# ========== 개발 환경 파일 ==========
+# VS Code
+.vscode/
+
+# RStudio
+*.Rproj
+
+# ========== 로그 파일 ==========
+*.log
+
+# ========== 기타 임시 파일 ==========
+# 테스트 스크립트들
+fix_duplicate_docids.R
+generate_hash_docids.R
+check_metadata_preservation.R
+
+# 임시 분석 파일들
+*.tmp
+temp_*
+
+# JSON 분석 결과
+*.json
