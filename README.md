@@ -138,20 +138,21 @@ export USE_USER_DICT=true
 **추가 개발, 확장, 연구 협업을 환영합니다!**
 
 특히 다음 분야의 협업을 기대합니다:
-- **교육학 연구**: 교육 정책, 교육과정, 교수학습 방법론 텍스트 분석
-- **교육사회학 연구**: 교육 불평등, 계층 재생산, 문화자본 연구
+
+- **교육학 연구**: 교육 정책, 제도와 관련된 대량의 텍스트 분석
 - **텍스트마이닝 방법론**: 한국어 NLP, 토픽 모델링, 감성 분석 기법 개발
 - **학제간 연구**: 교육학과 데이터 과학의 융합 연구
 
 협업 가능 영역:
+
 - **연구 협업**: 공동 연구 프로젝트 및 학술 논문 작성
 - **기능 개발**: 새로운 분석 기법이나 성능 개선
 - **확장 모듈**: 추가적인 텍스트마이닝 방법론 구현
 - **학술 네트워크**: 한국어 텍스트마이닝 연구 커뮤니티 구축
 
 협업 문의:
+
 - Email: rubato103@dodaseo.cc
-- 제목: "협업 제안 - textmining_KCI_RISS"
 
 ### 기여 방법
 
@@ -167,13 +168,9 @@ export USE_USER_DICT=true
 
 ### 이 파이프라인 인용
 
-#### 국문
-
 ```
 양연동. (2025). R을 이용한 한국어 학술데이터 텍스트마이닝. GitHub Repository. https://github.com/rubato103/textmining_KCI_RISS
 ```
-
-#### 영문
 
 ```
 Yang, Y. (2025). Text Mining of Korean Academic Data using R. GitHub Repository. https://github.com/rubato103/textmining_KCI_RISS
@@ -208,31 +205,6 @@ Yang, Y. (2025). Text Mining of Korean Academic Data using R. GitHub Repository.
 ### 상업적 이용 문의
 
 별도의 상업용 라이선스에 대해 문의 바랍니다: [GitHub Issues](../../issues)
-
-## 연락처
-
-- 문의: rubato103@dodaseo.cc
-
-## 문제 해결
-
-### 일반적인 문제들
-
-**1. Python 환경 문제**
-
-```r
-# reticulate 재설정
-library(reticulate)
-py_config()
-```
-
-**2. CoNg 모델 없음**
-
-- `use_cong_model = FALSE`로 설정하여 기본 Kiwipiepy 사용
-
-**3. 메모리 부족**
-
-- `parallel_cores` 값을 낮춤 (예: 4)
-- 배치 크기 조정
 
 ### 로그 확인
 
