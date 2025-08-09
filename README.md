@@ -21,16 +21,15 @@
 ## 📁 프로젝트 구조
 
 ```
-mopheme_test/
-├── 00_*.R                    # 🔐 핵심 인프라 스크립트
-├── 01_*.R                    # 📊 분석 워크플로우
+textming_KCI_RISS/
+├── scripts/                 # 📊 모든 R 스크립트
 ├── data/
 │   ├── raw_data/            # 원본 Excel 데이터 (gitignore)
 │   ├── processed/           # 처리된 결과 (gitignore)
 │   └── dictionaries/        # 사용자 사전 (gitignore)
 ├── reports/                 # 분석 보고서 (gitignore)
-├── ref/                     # 참고 문서
-├── slide/                   # 프레젠테이션
+├── CITATION.md              # 📖 인용 가이드
+├── LICENSE                  # ⚖️ 라이선스 정보
 └── cong-base/              # CoNg 모델 (gitignore)
 ```
 
@@ -54,14 +53,14 @@ pip install kiwipiepy
 
 ### 3. 전체 파이프라인 실행
 ```r
-source("00_run_pipeline.R")
+source("scripts/00_run_pipeline.R")
 ```
 
 ## 📋 상세 워크플로우
 
 ### 1단계: 데이터 로딩 및 표준화
 ```r
-source("01_data_loading_and_analysis.R")
+source("scripts/01_data_loading_and_analysis.R")
 ```
 - Excel 파일 자동 감지 및 병합
 - 데이터 구조 표준화 (doc_id, abstract, pub_year)
@@ -69,7 +68,7 @@ source("01_data_loading_and_analysis.R")
 
 ### 2단계: 형태소 분석
 ```r
-source("02_kiwipiepy_mopheme_analysis.R")
+source("scripts/02_kiwipiepy_mopheme_analysis.R")
 ```
 - CoNg 모델 자동 감지 및 초기화
 - 병렬 처리 최적화 (코어 수 자동 조정)
@@ -77,8 +76,8 @@ source("02_kiwipiepy_mopheme_analysis.R")
 
 ### 3단계: N그램 분석 및 사용자 사전
 ```r
-source("03-1_ngram_analysis.R")
-source("03-3_create_user_dict.R")
+source("scripts/03-1_ngram_analysis.R")
+source("scripts/03-3_create_user_dict.R")
 ```
 - 2,3,4그램 복합명사 후보 생성
 - 빈도 기반 필터링 및 시각화
@@ -86,14 +85,14 @@ source("03-3_create_user_dict.R")
 
 ### 4단계: DTM 생성
 ```r
-source("04_dtm_creation_interactive.R")
+source("scripts/04_dtm_creation_interactive.R")
 ```
 - Document-Term Matrix 생성
 - 텍스트 정제 및 필터링
 
 ### 5단계: STM 토픽 모델링
 ```r
-source("05_stm_topic_modeling.R")
+source("scripts/05_stm_topic_modeling.R")
 ```
 - 메타데이터 기반 토픽 모델링
 - 시계열 분석 (prevalence ~ pub_year)
@@ -167,7 +166,7 @@ export USE_USER_DICT=true
 
 ### 이 파이프라인 인용
 ```
-Korean Morpheme Analysis Pipeline for KCI/RISS Data. (2025). 
+Yang, Yeondong. (2025). R을 이용한 한국어 학술데이터 텍스트마이닝. 
 GitHub Repository. https://github.com/rubato103/textming_KCI_RISS
 ```
 
