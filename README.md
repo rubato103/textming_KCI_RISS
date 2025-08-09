@@ -165,13 +165,19 @@ export USE_USER_DICT=true
 
 **🚨 중요**: 이 코드를 사용하실 때는 반드시 인용 표기해주세요!
 
-### 학술 논문 인용 형식
+### 이 파이프라인 인용
 ```
 Korean Morpheme Analysis Pipeline for KCI/RISS Data. (2025). 
 GitHub Repository. https://github.com/rubato103/textming_KCI_RISS
 ```
 
-자세한 인용 가이드는 [CITATION.md](CITATION.md)를 참고하세요.
+### Kiwi 형태소 분석기 인용 (필수)
+```
+이민철. (2024). Kiwi: 통계적 언어 모델과 Skip-Bigram을 이용한 한국어 형태소 분석기 구현. 
+디지털인문학, 1(1), 109-136. https://doi.org/10.23287/KJDH.2024.1.1.6
+```
+
+**📋 상세한 인용 가이드**: [CITATION.md](CITATION.md)
 
 ## 📝 라이선스
 

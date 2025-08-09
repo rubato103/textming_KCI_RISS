@@ -79,8 +79,80 @@ GitHub: https://github.com/rubato103/textming_KCI_RISS
 - 인용 관련 문의: GitHub Issues
 - 기술적 문의: GitHub Discussions
 
+## 🔧 의존성 라이브러리 인용
+
+이 프로젝트는 다음 라이브러리들을 사용합니다. **해당 라이브러리들도 함께 인용해주세요.**
+
+### Kiwi 형태소 분석기 (필수 인용)
+
+**논문 인용 형식 (한국어)**:
+```
+이민철. (2024). Kiwi: 통계적 언어 모델과 Skip-Bigram을 이용한 한국어 형태소 분석기 구현. 
+디지털인문학, 1(1), 109-136. https://doi.org/10.23287/KJDH.2024.1.1.6
+```
+
+**논문 인용 형식 (English)**:
+```
+Lee, M. (2024). Kiwi: Developing a Korean Morphological Analyzer Based on Statistical Language Models and Skip-Bigram. 
+Korean Journal of Digital Humanities, 1(1), 109-136. https://doi.org/10.23287/KJDH.2024.1.1.6
+```
+
+**BibTeX (한국어)**:
+```bibtex
+@article{kiwi2024_kr,
+  title = {Kiwi: 통계적 언어 모델과 Skip-Bigram을 이용한 한국어 형태소 분석기 구현},
+  journal = {디지털인문학},
+  volume = {1},
+  number = {1},
+  pages = {109-136},
+  year = {2024},
+  author = {민철 이},
+  doi = {10.23287/KJDH.2024.1.1.6}
+}
+```
+
+**BibTeX (English)**:
+```bibtex
+@article{kiwi2024_en,
+  title = {Kiwi: Developing a Korean Morphological Analyzer Based on Statistical Language Models and Skip-Bigram},
+  journal = {Korean Journal of Digital Humanities},
+  volume = {1},
+  number = {1},
+  pages = {109-136},
+  year = {2024},
+  author = {Min-chul Lee},
+  doi = {10.23287/KJDH.2024.1.1.6}
+}
+```
+
+### 기타 주요 라이브러리
+
+- **STM**: Roberts, M. E., Stewart, B. M., & Tingley, D. (2019). stm: An R Package for Structural Topic Models. Journal of Statistical Software, 91(2), 1-40.
+- **Kiwipiepy**: Python wrapper for Kiwi morphological analyzer
+
+## 📋 완전한 인용 예시
+
+### 학술 논문에서 모든 도구를 인용하는 경우
+
+**한국어 논문**:
+```
+본 연구의 텍스트 분석에는 rubato103의 한국어 형태소 분석 파이프라인
+(https://github.com/rubato103/textming_KCI_RISS)을 활용하였으며, 
+형태소 분석에는 Kiwi 분석기(이민철, 2024)를, 토픽 모델링에는 
+STM 패키지(Roberts et al., 2019)를 사용하였다.
+```
+
+**English Paper**:
+```
+Text analysis was conducted using the Korean Morpheme Analysis Pipeline 
+(https://github.com/rubato103/textming_KCI_RISS), with morphological analysis 
+performed using the Kiwi analyzer (Lee, 2024) and topic modeling using 
+the STM package (Roberts et al., 2019).
+```
+
 ## 🙏 마지막 당부
 
 이 코드가 여러분의 연구와 프로젝트에 도움이 되기를 바랍니다. 
 **올바른 인용은 오픈소스 생태계를 건강하게 유지하는 중요한 요소입니다.**
+특히 Kiwi 형태소 분석기 개발자의 학술적 기여를 인정하여 **반드시 인용**해주세요.
 감사합니다! 🚀
