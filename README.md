@@ -161,13 +161,29 @@ export USE_USER_DICT=true
 4. Push to the branch
 5. Create a Pull Request
 
+## 📖 인용 (Citation)
+
+**🚨 중요**: 이 코드를 사용하실 때는 반드시 인용 표기해주세요!
+
+### 학술 논문 인용 형식
+```
+Korean Morpheme Analysis Pipeline for KCI/RISS Data. (2025). 
+GitHub Repository. https://github.com/rubato103/textming_KCI_RISS
+```
+
+자세한 인용 가이드는 [CITATION.md](CITATION.md)를 참고하세요.
+
 ## 📝 라이선스
 
-이 프로젝트는 MIT 라이선스를 따릅니다.
+이 프로젝트는 MIT 라이선스를 따릅니다. 
+- ✅ 상업적 이용 허용
+- ✅ 수정/배포 허용
+- 🚨 **인용 표기 필수**
 
 ## 📧 연락처
 
-프로젝트 관련 문의: [GitHub Issues](../../issues)
+- 인용 관련 문의: [GitHub Issues](../../issues)
+- 기술적 문의: [GitHub Discussions](../../discussions)
 
 ## 🔧 문제 해결
 
