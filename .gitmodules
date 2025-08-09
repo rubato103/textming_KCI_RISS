@@ -1,0 +1,3 @@
+[submodule "external/kiwipiepy"]
+	path = external/kiwipiepy
+	url = https://github.com/bab2min/kiwipiepy
