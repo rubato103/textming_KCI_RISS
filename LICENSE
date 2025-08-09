@@ -1,16 +1,42 @@
-MIT License
+Academic and Educational Use License
 
 Copyright (c) 2025 rubato103
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+of this software and associated documentation files (the "Software"), to use,
+copy, modify, and distribute the Software for ACADEMIC and EDUCATIONAL purposes only,
+subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+PERMITTED USES:
+- Academic research and scholarly publications
+- Educational purposes in schools, universities, and other educational institutions
+- Non-profit research activities
+- Personal study and learning
+- Academic collaboration and knowledge sharing
+
+PROHIBITED USES:
+- Commercial use, including but not limited to:
+  * Selling the Software or derivative works
+  * Using the Software in commercial products or services
+  * Using the Software for commercial consulting or analysis services
+  * Any use that generates revenue or commercial benefit
+
+CITATION REQUIREMENTS:
+1. This Software: Korean Morpheme Analysis Pipeline for KCI/RISS Data. (2025). 
+   GitHub Repository. https://github.com/rubato103/textming_KCI_RISS
+
+2. Kiwi Morphological Analyzer: 이민철. (2024). Kiwi: 통계적 언어 모델과 Skip-Bigram을 
+   이용한 한국어 형태소 분석기 구현. 디지털인문학, 1(1), 109-136. 
+   https://doi.org/10.23287/KJDH.2024.1.1.6
+
+CONDITIONS:
+- The above copyright notice, this permission notice, and citation requirements 
+  shall be included in all copies or substantial portions of the Software.
+- Any publications or presentations using this Software must include proper citations.
+- Modified versions must clearly indicate the modifications made.
+
+COMMERCIAL LICENSING:
+For commercial use, please contact the repository owner for a separate commercial license.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
