@@ -14,14 +14,14 @@ GitHub Repository. https://github.com/rubato103/textming_KCI_RISS
 
 ### APA 형식
 ```
-rubato103. (2025). Korean Morpheme Analysis Pipeline for KCI/RISS Data [Computer software]. 
+Yang, Yeondong. (2025). Text Mining Korean Academic Data using R [Computer software]. 
 GitHub. https://github.com/rubato103/textming_KCI_RISS
 ```
 
 ### BibTeX 형식
 ```bibtex
 @software{korean_morpheme_2025,
-  author = {rubato103},
+  author = {Yang, Yeondong},
   title = {Korean Morpheme Analysis Pipeline for KCI/RISS Data},
   url = {https://github.com/rubato103/textming_KCI_RISS},
   version = {1.0.0},
@@ -31,7 +31,7 @@ GitHub. https://github.com/rubato103/textming_KCI_RISS
 
 ### 한국어 논문에서 사용시
 ```
-rubato103. (2025). KCI/RISS 데이터 대상 한국어 형태소 분석 파이프라인. 
+양연동. (2025). R을 이용한 한국어 학술데이터 텍스트마이닝. 
 GitHub 저장소. https://github.com/rubato103/textming_KCI_RISS
 ```
 
@@ -47,8 +47,8 @@ GitHub 저장소. https://github.com/rubato103/textming_KCI_RISS
 - 💻 **소프트웨어 개발**: 다른 프로젝트에 코드 포함시
 
 ### 📋 인용시 포함 요소
-1. **저자**: rubato103
-2. **제목**: Korean Morpheme Analysis Pipeline for KCI/RISS Data
+1. **저자**: 양연동 (Yang, Yeondong)
+2. **제목**: R을 이용한 한국어 학술데이터 텍스트마이닝
 3. **URL**: https://github.com/rubato103/textming_KCI_RISS
 4. **연도**: 2025
 
@@ -56,14 +56,14 @@ GitHub 저장소. https://github.com/rubato103/textming_KCI_RISS
 
 ### 논문 감사의 글에서
 ```
-"본 연구의 텍스트 분석에는 rubato103의 한국어 형태소 분석 파이프라인을 활용하였다 
+"본 연구의 텍스트 분석에는 양연동의 R을 이용한 한국어 학술데이터 텍스트마이닝 파이프라인을 활용하였다 
 (https://github.com/rubato103/textming_KCI_RISS)."
 ```
 
 ### README.md에서
 ```markdown
 ## Acknowledgments
-This project uses the Korean Morpheme Analysis Pipeline developed by rubato103.
+This project uses the Text Mining Korean Academic Data using R pipeline developed by Yang, Yeondong.
 GitHub: https://github.com/rubato103/textming_KCI_RISS
 ```
 
@@ -141,7 +141,7 @@ Korean Journal of Digital Humanities, 1(1), 109-136. https://doi.org/10.23287/KJ
 
 **한국어 논문**:
 ```
-본 연구의 텍스트 분석에는 rubato103의 한국어 형태소 분석 파이프라인
+본 연구의 텍스트 분석에는 양연동의 R을 이용한 한국어 학술데이터 텍스트마이닝 파이프라인
 (https://github.com/rubato103/textming_KCI_RISS)을 활용하였으며, 
 형태소 분석에는 Kiwi 분석기(이민철, 2024)를, 토픽 모델링에는 
 STM 패키지(Roberts et al., 2019)를 사용하였다.
@@ -149,7 +149,7 @@ STM 패키지(Roberts et al., 2019)를 사용하였다.
 
 **English Paper**:
 ```
-Text analysis was conducted using the Korean Morpheme Analysis Pipeline 
+Text analysis was conducted using the Text Mining Korean Academic Data using R pipeline 
 (https://github.com/rubato103/textming_KCI_RISS), with morphological analysis 
 performed using the Kiwi analyzer (Lee, 2024) and topic modeling using 
 the STM package (Roberts et al., 2019).
