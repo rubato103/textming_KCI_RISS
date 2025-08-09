@@ -25,15 +25,16 @@
 ## 주요 워크플로우
 
 ```mermaid
-graph TD;
-    A[Excel 데이터 입력<br>(KCI, RISS)] --> B{1. 데이터 로딩 및 표준화<br>(01_...R)};
-    B --> C{2. 형태소 분석<br>(02_...R)};
-    C --> D{3. N그램 분석<br>(03-1_...R)};
-    D --> E[사용자 사전 생성<br>(03-3_...R)];
-    C --> F{4. DTM 생성<br>(04_...R)};
-    E -- 사용자 검토 및 수정 --> C;
-    F --> G{5. STM 토픽 모델링<br>(05_...R)};
-    G --> H[분석 보고서 및 결과];
+graph LR;
+    A("Excel 데이터 입력<br>(KCI, RISS)") --> B("데이터 로딩 및 표준화<br>(Script.01)");
+    B --> C("형태소 분석<br>(Script.02)");
+    C --> D("N그램 분석<br>(Script.03-1)");
+    D --"사용자 검토 및 수정"--> E("사용자 사전 생성<br>(Script.03-3)");
+    E --> C; %% Loop for iterative refinement (from E to C)
+    E --> F("DTM 생성<br>(Script.04)");
+    F --> G("STM 토픽 모델링<br>(Script.05)");
+    G --> H("분석 보고서 및 결과");
+    H --- A; %% Invisible circular connection
 
     style A fill:#f9f,stroke:#333,stroke-width:2px
     style H fill:#f9f,stroke:#333,stroke-width:2px
