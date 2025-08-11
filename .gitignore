@@ -46,6 +46,7 @@ Desktop.ini
 # ========== 개발 환경 파일 ==========
 # VS Code
 .vscode/
+claude.md
 
 # RStudio
 *.Rproj

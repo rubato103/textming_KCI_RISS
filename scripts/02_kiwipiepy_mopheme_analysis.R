@@ -34,12 +34,9 @@ if (file.exists("scripts/00_interactive_utils.R")) {
 }
 
 # ========== 환경 설정 ==========
-if (!endsWith(getwd(), "mopheme_test")) {
-  script_path <- commandArgs(trailingOnly = FALSE)
-  script_dir <- dirname(sub("--file=", "", script_path[grep("--file", script_path)]))
-  if (length(script_dir) > 0 && script_dir != "") {
-    setwd(script_dir)
-  }
+# 프로젝트 루트 디렉토리로 이동
+if (basename(getwd()) == "scripts") {
+  setwd("..")
 }
 cat("작업 디렉토리:", getwd(), "\n")
 
@@ -142,9 +139,22 @@ if (cong_available) {
   cat("1. 예 - CoNg 모델 다운로드 및 사용 (58.7MB, 향상된 성능)\n")
   cat("2. 아니오 - 기본 모델 사용\n")
   
-  cat("❌ CoNg 모델 자동 다운로드는 지원하지 않습니다. 기본 모델 사용\n")
+  # 스마트 입력 사용 (사용 가능한 경우)
+  if (exists("smart_input")) {
+    download_choice <- smart_input(
+      "CoNg 모델을 다운로드하시겠습니까?",
+      type = "select",
+      options = c("예 - CoNg 모델 다운로드 및 사용 (58.7MB, 향상된 성능)", "아니오 - 기본 모델 사용"),
+      default = 2
+    )
+    AUTO_DOWNLOAD <- (download_choice == 1)
+  } else {
+    # 기존 방식 (fallback)
+    download_choice <- readline(prompt = "선택하세요 (1 또는 2):")
+    AUTO_DOWNLOAD <- (download_choice == "1")
+  }
   
-  if (FALSE) {  # 자동 다운로드 비활성화
+  if (AUTO_DOWNLOAD) {
     cat("\n========== CoNg 모델 자동 설치 ==========\n")
     
     model_file <- "kiwi_model_v0.21.0_cong_base.tgz"
@@ -206,26 +216,41 @@ if (USE_CONG_MODEL) {
   tryCatch({
     cong_model_path <- normalizePath(cong_model_dir, winslash = "/")
     kiwi_analyzer <- kiwi$Kiwi(model_path = cong_model_path, model_type = "cong")
-    cat("✅ CoNg 모델 분석기 초기화 성공\n")
+    # 복합명사 인식을 위한 공백 허용 설정
+    kiwi_analyzer$space_tolerance <- 2L
+    cat("✅ CoNg 모델 분석기 초기화 성공 (space_tolerance=2)\n")
   }, error = function(e) {
     cat("❌ CoNg 모델 초기화 실패:", e$message, "\n")
     cat("기본 모델로 fallback합니다.\n")
     kiwi_analyzer <- kiwi$Kiwi()
+    # 복합명사 인식을 위한 공백 허용 설정 (fallback)
+    kiwi_analyzer$space_tolerance <- 2L
     USE_CONG_MODEL <<- FALSE
   })
 } else {
   cat("기본 모델로 분석기 초기화 중...\n")
   kiwi_analyzer <- kiwi$Kiwi()
-  cat("✅ 기본 모델 분석기 초기화 성공\n")
+  # 복합명사 인식을 위한 공백 허용 설정
+  kiwi_analyzer$space_tolerance <- 2L
+  cat("✅ 기본 모델 분석기 초기화 성공 (space_tolerance=2)\n")
 }
 
-# 대화형 사전 선택
-cat("\n사용자 사전을 적용하시겠습니까?\n")
-cat("1. 예 - 사용자 사전 적용\n")
-cat("2. 아니오 - 기본 분석기 사용\n")
-
-# 사용자 입력 받기
-dict_choice <- readline(prompt = "선택하세요 (1 또는 2):")
+# 대화형 사전 선택 (smart_input 사용)
+if (exists("smart_input")) {
+  dict_choice <- smart_input(
+    "사용자 사전을 적용하시겠습니까?",
+    type = "select",
+    options = c("예 - 사용자 사전 적용", "아니오 - 기본 분석기 사용"),
+    default = 1  # 기본값으로 사전 적용
+  )
+  dict_choice <- as.character(dict_choice)
+} else {
+  # 기존 방식 (fallback)
+  cat("\n사용자 사전을 적용하시겠습니까?\n")
+  cat("1. 예 - 사용자 사전 적용\n")
+  cat("2. 아니오 - 기본 분석기 사용\n")
+  dict_choice <- readline(prompt = "선택하세요 (1 또는 2):")
+}
 
 if (dict_choice == "1") {
   USE_USER_DICT <- TRUE
@@ -253,7 +278,7 @@ if (dict_choice == "1") {
                     format(file_info$mtime, "%Y-%m-%d %H:%M")))
       }
       
-      dict_selection <- readline(prompt = sprintf("사전을 선택하세요 (1-%d):"))
+      dict_selection <- readline(prompt = sprintf("사전을 선택하세요 (1-%d): ", length(dict_files)))
       dict_idx <- as.numeric(dict_selection)
       
       if (!is.na(dict_idx) && dict_idx >= 1 && dict_idx <= length(dict_files)) {
@@ -273,7 +298,7 @@ if (dict_choice == "1") {
 } else {
   USE_USER_DICT <- FALSE
   selected_dict <- NULL
-  cat("기본 분석기를 사용합니다.\n")
+  cat("→ 기본 분석기를 사용합니다.\n")
 }
 
 if (FALSE) {  # 사용자 사전 로직 비활성화
@@ -295,7 +320,7 @@ if (FALSE) {  # 사용자 사전 로직 비활성화
     cat(sprintf("%d. 최신 파일 자동 선택 (추천)\n", length(dict_files) + 1))
     
     # 사전 선택
-    dict_choice <- readline(prompt = sprintf("선택 (1-%d):"))
+    dict_choice <- readline(prompt = sprintf("선택 (1-%d): ", length(dict_files) + 1))
     
     if (dict_choice == as.character(length(dict_files) + 1)) {
       selected_dict <- dict_files[which.max(file.mtime(dict_files))]
@@ -310,24 +335,14 @@ if (FALSE) {  # 사용자 사전 로직 비활성화
     if (!is.null(selected_dict)) {
       cat("\n선택된 사전:", basename(selected_dict), "\n")
       
-      # 사전 내용 읽기 및 적용
-      dict_content <- readLines(selected_dict, encoding = "UTF-8")
-      dict_words <- strsplit(dict_content, "\t")
-      
-      added_count <- 0
-      for (word_info in dict_words) {
-        if (length(word_info) >= 1) {
-          word <- word_info[1]
-          tag <- if(length(word_info) >= 2) word_info[2] else "NNG"
-          score <- if(length(word_info) >= 3) as.numeric(word_info[3]) else 0.0
-          
-          tryCatch({
-            kiwi_analyzer$add_user_word(word, tag, score)
-          }, error = function(e) {
-            # 오류 무시 (중복 단어 등)
-          })
-        }
-      }
+      # 사용자 사전 파일 직접 로드 (load_user_dictionary 사용)
+      tryCatch({
+        added_count <- kiwi_analyzer$load_user_dictionary(selected_dict)
+        cat(sprintf("✅ 사용자 사전 파일 로드 완료: %d개 형태소 추가\n", added_count))
+      }, error = function(e) {
+        cat(sprintf("❌ 사용자 사전 로드 실패: %s\n", e$message))
+        added_count <- 0
+      })
       
       cat(sprintf("✅ 사용자 사전 적용 완료: %d개 단어 추가\n", added_count))
       model_suffix <- if(USE_CONG_MODEL) "cong" else "default"
@@ -345,9 +360,17 @@ if (FALSE) {  # 사용자 사전 로직 비활성화
     dict_type_suffix <- paste0("kiwipiepy_", model_suffix, "_no_dict")
   }
 } else {
-  cat("→ 기본 분석기를 사용합니다.\n")
-  model_suffix <- if(USE_CONG_MODEL) "cong" else "default"
-  dict_type_suffix <- paste0("kiwipiepy_", model_suffix, "_default")
+  if (USE_USER_DICT) {
+    cat("→ 사용자 사전이 적용된 분석기를 사용합니다.\n")
+    model_suffix <- if(USE_CONG_MODEL) "cong" else "default"
+    # 사전 파일명에서 태그 추출 (예: 20250811_175903_user_dict_test1.txt → test1)
+    dict_tag <- gsub(".*user_dict_(.+)\\.txt$", "\\1", basename(selected_dict))
+    dict_type_suffix <- paste0("kiwipiepy_", model_suffix, "_", dict_tag)
+  } else {
+    cat("→ 기본 분석기를 사용합니다.\n")
+    model_suffix <- if(USE_CONG_MODEL) "cong" else "default"
+    dict_type_suffix <- paste0("kiwipiepy_", model_suffix, "_default")
+  }
 }
 
 # 최종 선택 확인
@@ -359,7 +382,7 @@ if (USE_USER_DICT && !is.null(selected_dict)) {
   cat(sprintf("   📊 사전 크기: %.1f KB\n", dict_info$size/1024))
   cat(sprintf("   📅 생성일시: %s\n", format(dict_info$mtime, "%Y-%m-%d %H:%M")))
 } else {
-  cat("✅ 분석기 설정: 사전 미적용\n")
+  cat("✅ 분석기 설정: 기본 분석기 (사전 미적용)\n")
 }
 cat("📁 결과 파일 접미사:", dict_type_suffix, "\n")
 
@@ -369,12 +392,22 @@ optional_tag <- dict_type_suffix # 기존 dict_type_suffix를 optional_tag로 �
 
 # 최종 확인
 
-cat("\n분석을 시작하시겠습니까?\n")
-cat("1. 예 - 분석 시작\n")
-cat("2. 아니오 - 종료\n")
-
-# 사용자 입력 받기
-start_choice <- readline(prompt = "선택하세요 (1 또는 2):")
+# 분석 시작 확인 (smart_input 사용)
+if (exists("smart_input")) {
+  start_choice <- smart_input(
+    "분석을 시작하시겠습니까?",
+    type = "select",
+    options = c("예 - 분석 시작", "아니오 - 종료"),
+    default = 1
+  )
+  start_choice <- as.character(start_choice)
+} else {
+  # 기존 방식 (fallback)
+  cat("\n분석을 시작하시겠습니까?\n")
+  cat("1. 예 - 분석 시작\n")
+  cat("2. 아니오 - 종료\n")
+  start_choice <- readline(prompt = "선택하세요 (1 또는 2):")
+}
 
 if (start_choice == "2") {
   cat("분석을 취소합니다.\n")
@@ -391,12 +424,12 @@ cat("\n========== 데이터 불러오기 ==========\n")
 processed_data_path <- "data/processed"
 combined_data_files <- list.files(
   processed_data_path,
-  pattern = "^dl_combined_data_.*\\.rds$",
+  pattern = "combined_data.*\\.rds$",
   full.names = TRUE
 )
 
 if (length(combined_data_files) == 0) {
-  stop("dl_combined_data_*.rds 파일을 찾을 수 없습니다. 01_data_loading_and_analysis.R을 먼저 실행해주세요.")
+  stop("combined_data*.rds 파일을 찾을 수 없습니다. 01_data_loading_and_analysis.R을 먼저 실행해주세요.")
 }
 
 # 가장 최신 파일 선택
@@ -438,8 +471,8 @@ if (is.null(abstract_column)) {
   abstract_column <- text_cols[text_cols != "source_file"][1]
 }
 
-# ========== 태그 기반 명사 추출 함수 ========== (kiwipiepy 객체 파라미터 추가)
-extract_nouns_enhanced_xsn <- function(text, kiwi_analyzer) {
+# ========== 태그 기반 명사 추출 함수 (XPN + XSN 통합 처리) ========== 
+extract_nouns_enhanced_xpn_xsn <- function(text, kiwi_analyzer) {
   if (is.na(text) || is.null(text) || !is.character(text) || nchar(trimws(text)) == 0) {
     return(character(0))
   }
@@ -457,20 +490,50 @@ extract_nouns_enhanced_xsn <- function(text, kiwi_analyzer) {
     while (i <= length(result)) {
       token <- result[[i]]
       
-      # Noun + XSN 결합을 위한 Look-ahead
-      if (i < length(result) && token$tag %in% c("NNG", "NNP")) {
-        next_token <- result[[i + 1]]
-        if (next_token$tag == "XSN") {
-          # 결합 성공: 결합된 명사를 추가하고 인덱스를 2칸 이동
-          combined_noun <- paste0(token$form, next_token$form)
-          all_nouns <- c(all_nouns, combined_noun)
-          i <- i + 2
+      # ========== 복합 패턴 처리: XPN + NNG/NNP + XSN ==========
+      if (i >= 1 && i <= length(result) - 2 && token$tag == "XPN") {
+        noun_token <- result[[i + 1]]
+        suffix_token <- result[[i + 2]]
+        
+        if (noun_token$tag %in% c("NNG", "NNP") && suffix_token$tag == "XSN") {
+          # 3-way 결합: 접두사 + 명사 + 접미사 (예: 비/XPN + 정상/NNG + 적/XSN = 비정상적)
+          triple_combined <- paste0(token$form, noun_token$form, suffix_token$form)
+          all_nouns <- c(all_nouns, triple_combined)
+          i <- i + 3  # 3칸 이동
           next
         }
       }
       
-      # 일반 명사(NNG, NNP) 처리
+      # ========== XPN + NNG/NNP 패턴 처리 ==========
+      if (i <= length(result) - 1 && token$tag == "XPN") {
+        next_token <- result[[i + 1]]
+        if (next_token$tag %in% c("NNG", "NNP")) {
+          # 접두사 + 명사 결합 (예: 비/XPN + 정상/NNG = 비정상)
+          prefix_combined <- paste0(token$form, next_token$form)
+          all_nouns <- c(all_nouns, prefix_combined)
+          i <- i + 2  # 2칸 이동
+          next
+        }
+      }
+      
+      # ========== NNG/NNP + XSN 패턴 처리 (기존 로직) ==========
+      if (i <= length(result) - 1 && token$tag %in% c("NNG", "NNP")) {
+        next_token <- result[[i + 1]]
+        if (next_token$tag == "XSN") {
+          # 명사 + 접미사 결합 (예: 정상/NNG + 적/XSN = 정상적)
+          suffix_combined <- paste0(token$form, next_token$form)
+          all_nouns <- c(all_nouns, suffix_combined)
+          i <- i + 2  # 2칸 이동
+          next
+        }
+      }
+      
+      # ========== 단독 처리: 일반 명사, 접두사, 접미사 ==========
       if (token$tag %in% c("NNG", "NNP")) {
+        all_nouns <- c(all_nouns, token$form)
+      } else if (token$tag == "XPN") {
+        all_nouns <- c(all_nouns, token$form)
+      } else if (token$tag == "XSN") {
         all_nouns <- c(all_nouns, token$form)
       }
       
@@ -485,7 +548,7 @@ extract_nouns_enhanced_xsn <- function(text, kiwi_analyzer) {
     }
     
   }, error = function(e) {
-    warning(paste("개선된 XSN 형태소 분석 오류:", e$message))
+    warning(paste("개선된 XPN+XSN 형태소 분석 오류:", e$message))
     return(character(0))
   })
 }
@@ -627,21 +690,22 @@ if (available_memory_gb >= 32) {
 # 안전 범위로 제한
 use_cores <- max(1, min(use_cores, n_cores - 1))
 
-# 동적 배치 크기 계산 (CPU 코어 수 기반)
+# 동적 배치 크기 계산 (코어 수 일치 최적화)
 calculate_optimal_batch_size <- function(total_docs, num_cores) {
-  # 실제 성능 기반 최적화: 배치 오버헤드 vs 병렬 효율성
-  
-  # 코어 수와 동일한 배치 수를 목표 (오버헤드 최소화)
+  # 목표: 코어 수와 배치 수를 정확히 일치시켜 모든 코어 활용
   target_batches <- num_cores
   
-  # 배치 크기 계산
-  base_batch_size <- ceiling(total_docs / target_batches)
+  # 이상적인 배치 크기: 문서 수를 코어 수로 나눈 값
+  ideal_batch_size <- ceiling(total_docs / target_batches)
   
-  # 성능 기반 제한
-  min_batch_size <- 50   # Python 초기화 오버헤드 고려하여 증가
-  max_batch_size <- 300  # 메모리 효율성 고려하여 증가
+  # 최소 배치 크기를 매우 낮게 설정해서 코어 수 일치를 우선시
+  min_batch_size <- max(1, ceiling(total_docs / (num_cores * 2)))  # 코어당 최소 0.5개 문서
   
-  optimal_batch_size <- max(min_batch_size, min(base_batch_size, max_batch_size))
+  # 최대 배치 크기는 전체 문서의 50%로 제한
+  max_batch_size <- max(ideal_batch_size, ceiling(total_docs * 0.5))
+  
+  # 코어 수 일치를 위해 이상적인 배치 크기를 우선 적용
+  optimal_batch_size <- max(min_batch_size, min(ideal_batch_size, max_batch_size))
   
   return(optimal_batch_size)
 }
@@ -666,186 +730,226 @@ if (total_batches / use_cores > 1.2) {
 }
 
 
-# ========== 배치 처리 함수 정의 ==========
-process_batch_parallel <- function(batch_data, batch_num, USE_CONG_MODEL, USE_USER_DICT, selected_dict) {
-  # CPU 집약적 작업 확인을 위한 타이밍
+# ========== 간소화된 배치 처리 함수 정의 (직렬화 안전) ==========
+process_batch_safe <- function(batch_start, batch_end, cong_available, dict_file_path = NULL) {
   worker_start_time <- Sys.time()
-  cat(sprintf("[워커 %d] 시작 - PID: %d\n", batch_num, Sys.getpid()))
   
-  # 각 워커에서 독립적인 kiwipiepy 초기화
-  library(reticulate)
-  kiwi <- import("kiwipiepy")
-  
-  init_time <- Sys.time()
-  cat(sprintf("[워커 %d] Python 모듈 로드 완료: %.2f초\n", batch_num, 
-              as.numeric(difftime(init_time, worker_start_time, units = "secs"))))
-  
-  # 모델 초기화
-  if (USE_CONG_MODEL && dir.exists("cong-base")) {
-    tryCatch({
-      cong_model_path <- normalizePath("cong-base", winslash = "/")
-      kiwi_analyzer <- kiwi$Kiwi(model_path = cong_model_path, model_type = "cong")
-    }, error = function(e) {
-      kiwi_analyzer <<- kiwi$Kiwi()
-    })
-  } else {
-    kiwi_analyzer <- kiwi$Kiwi()
-  }
-  
-  model_time <- Sys.time()
-  cat(sprintf("[워커 %d] 모델 초기화 완료: %.2f초\n", batch_num,
-              as.numeric(difftime(model_time, init_time, units = "secs"))))
-  
-  # 사용자 사전 적용 (필요시)
-  if (USE_USER_DICT && !is.null(selected_dict) && file.exists(selected_dict)) {
-    dict_content <- readLines(selected_dict, encoding = "UTF-8")
-    dict_words <- strsplit(dict_content, "\t")
+  # 각 워커에서 독립적인 kiwipiepy 초기화 (최소한)
+  tryCatch({
+    library(reticulate)
+    kiwi <- import("kiwipiepy")
     
-    for (word_info in dict_words) {
-      if (length(word_info) >= 1) {
-        word <- word_info[1]
-        tag <- if(length(word_info) >= 2) word_info[2] else "NNG"
-        score <- if(length(word_info) >= 3) as.numeric(word_info[3]) else 0.0
-        
-        tryCatch({
-          kiwi_analyzer$add_user_word(word, tag, score)
-        }, error = function(e) {
-          # 오류 무시
-        })
-      }
+    # 모델 초기화 (간단한 불린 값만 사용)
+    if (cong_available && dir.exists("cong-base")) {
+      kiwi_analyzer <- kiwi$Kiwi(model_path = "cong-base", model_type = "cong")
+    } else {
+      kiwi_analyzer <- kiwi$Kiwi()
     }
-  }
-  
-  # 배치 내 문서 처리 (리스트 수집 방식 사용)
-  morpheme_list <- list()
-  noun_list <- list()
-  success_count <- 0
-  error_count <- 0
-  
-  for (i in 1:nrow(batch_data)) {
-    doc_id <- batch_data$doc_id[i]
-    abstract <- batch_data$abstract[i]
+    kiwi_analyzer$space_tolerance <- 2L
     
-    tryCatch({
-      # 개선된 XSN 처리 분석
-      extracted_nouns <- extract_nouns_enhanced_xsn(abstract, kiwi_analyzer)
-      morpheme_analysis <- analyze_morphemes_enhanced(abstract, kiwi_analyzer)
+    # 사용자 사전 로드 (파일 경로만 전달)
+    dict_loaded <- FALSE
+    if (!is.null(dict_file_path) && file.exists(dict_file_path)) {
+      tryCatch({
+        added_words <- kiwi_analyzer$load_user_dictionary(dict_file_path)
+        dict_loaded <- TRUE
+      }, error = function(e) {
+        dict_loaded <<- FALSE
+      })
+    }
+    
+    # 전역 데이터에서 배치 추출
+    batch_data <- analysis_data[batch_start:min(batch_end, nrow(analysis_data)), ]
+    
+    # 결과 수집
+    morpheme_results <- character(nrow(batch_data))
+    noun_results <- character(nrow(batch_data))
+    doc_ids <- character(nrow(batch_data))
+    
+    for (i in 1:nrow(batch_data)) {
+      doc_ids[i] <- as.character(batch_data$doc_id[i])
+      abstract <- batch_data$abstract[i]
       
-      if (length(extracted_nouns) > 0) {
-        noun_extraction <- paste(extracted_nouns, collapse = ", ")
-        noun_list[[length(noun_list) + 1]] <- data.frame(
-          doc_id = as.character(doc_id),
-          noun_extraction = noun_extraction,
-          stringsAsFactors = FALSE
-        )
-      }
-      
-      if (nchar(morpheme_analysis) > 0) {
-        morpheme_list[[length(morpheme_list) + 1]] <- data.frame(
-          doc_id = as.character(doc_id),
-          morpheme_analysis = morpheme_analysis,
-          stringsAsFactors = FALSE
-        )
-      }
-      
-      success_count <- success_count + 1
-      
-    }, error = function(e) {
-      error_count <- error_count + 1
-    })
-  }
-  
-  # 워커 완료 시간 기록
-  worker_end_time <- Sys.time()
-  total_worker_time <- as.numeric(difftime(worker_end_time, worker_start_time, units = "secs"))
-  
-  cat(sprintf("[워커 %d] 완료 - 총 시간: %.2f초, 문서 %d개 처리\n", 
-              batch_num, total_worker_time, nrow(batch_data)))
-  
-  # 배치 결과 반환 (do.call(rbind) 방식)
-  return(list(
-    morpheme = if(length(morpheme_list) > 0) do.call(rbind, morpheme_list) else data.frame(),
-    nouns = if(length(noun_list) > 0) do.call(rbind, noun_list) else data.frame(),
-    batch_num = batch_num,
-    processed_docs = nrow(batch_data),
-    success_count = success_count,
-    error_count = error_count,
-    processing_time = Sys.time(),
-    worker_total_time = total_worker_time
-  ))
+      tryCatch({
+        # 개선된 XSN 처리 분석
+        extracted_nouns <- extract_nouns_enhanced_xpn_xsn(abstract, kiwi_analyzer)
+        morpheme_analysis <- analyze_morphemes_enhanced(abstract, kiwi_analyzer)
+        
+        if (length(extracted_nouns) > 0) {
+          noun_results[i] <- paste(extracted_nouns, collapse = ", ")
+        } else {
+          noun_results[i] <- ""
+        }
+        
+        morpheme_results[i] <- morpheme_analysis
+        
+      }, error = function(e) {
+        morpheme_results[i] <<- ""
+        noun_results[i] <<- ""
+      })
+    }
+    
+    # 빈 결과 제거
+    valid_indices <- nchar(morpheme_results) > 0 | nchar(noun_results) > 0
+    
+    result <- list(
+      doc_ids = doc_ids[valid_indices],
+      morphemes = morpheme_results[valid_indices],
+      nouns = noun_results[valid_indices],
+      batch_start = batch_start,
+      batch_end = min(batch_end, nrow(analysis_data)),
+      processing_time = as.numeric(difftime(Sys.time(), worker_start_time, units = "secs")),
+      dict_loaded = dict_loaded
+    )
+    
+    return(result)
+    
+  }, error = function(e) {
+    # 오류 발생 시 빈 결과 반환
+    return(list(
+      doc_ids = character(0),
+      morphemes = character(0),
+      nouns = character(0),
+      batch_start = batch_start,
+      batch_end = min(batch_end, nrow(analysis_data)),
+      processing_time = as.numeric(difftime(Sys.time(), worker_start_time, units = "secs")),
+      dict_loaded = FALSE,
+      error = e$message
+    ))
+  })
 }
 
 # ========== 형태소 분석 실행 ==========
-cat("\n========== 개선된 XSN 처리 형태소 분석 실행 (병렬 처리) ==========\n")
+cat("\n========== 개선된 XSN 처리 형태소 분석 실행 (안전한 병렬 처리) ==========\n")
 
 total_start_time <- Sys.time()
 
-# 데이터를 배치로 분할
-batches <- split(analysis_data, ceiling(seq_len(nrow(analysis_data)) / BATCH_SIZE))
+# 배치 범위 계산 (데이터 자체가 아닌 인덱스만 전달)
+total_docs <- nrow(analysis_data)
+batch_ranges <- list()
+for (i in 1:total_batches) {
+  start_idx <- (i - 1) * BATCH_SIZE + 1
+  end_idx <- min(i * BATCH_SIZE, total_docs)
+  batch_ranges[[i]] <- c(start_idx, end_idx)
+}
 
-# ========== 병렬 처리 실행 ==========
-cat(sprintf("🚀 병렬 클러스터 생성 중... (%d 워커)\n", use_cores))
-cl <- makeCluster(use_cores, type = "PSOCK")  # Windows 최적화
+# ========== 안전한 병렬 처리 실행 ==========
+cat(sprintf("🚀 안전한 병렬 클러스터 생성 중... (%d 워커)\n", use_cores))
 
-# 클러스터 환경 최적화 설정
-cat("⚙️  클러스터 환경 설정 중...\n")
+# 직렬 처리 vs 병렬 처리 선택
+if (use_cores <= 2 || total_docs <= 50) {
+  cat("⚠️ 소규모 데이터 또는 제한된 코어 - 직렬 처리 모드\n")
+  
+  # 직렬 처리
+  batch_results <- list()
+  for (i in 1:length(batch_ranges)) {
+    range_info <- batch_ranges[[i]]
+    cat(sprintf("처리 중: 배치 %d/%d (%d-%d)\n", i, length(batch_ranges), 
+                range_info[1], range_info[2]))
+    
+    result <- process_batch_safe(
+      batch_start = range_info[1], 
+      batch_end = range_info[2],
+      cong_available = USE_CONG_MODEL,
+      dict_file_path = if(USE_USER_DICT && !is.null(selected_dict)) selected_dict else NULL
+    )
+    
+    batch_results[[i]] <- result
+  }
+  
+} else {
+  # 병렬 처리 (안전한 방식)
+  tryCatch({
+    cl <- makeCluster(use_cores, type = "PSOCK")
+    
+    cat("⚙️  클러스터 환경 설정 중...\n")
+    
+    # 필수 함수와 데이터만 전송 (큰 객체 제외)
+    clusterExport(cl, c("process_batch_safe", "extract_nouns_enhanced_xpn_xsn", 
+                        "analyze_morphemes_enhanced", "analysis_data", 
+                        "USE_CONG_MODEL", "USE_USER_DICT", "selected_dict"))
+    
+    # 각 워커에서 라이브러리 로드
+    clusterEvalQ(cl, {
+      library(reticulate)
+      library(dplyr)
+      options(warn = -1)
+    })
+    
+    cat(sprintf("🔥 안전한 병렬 배치 처리 시작... (%d 워커 × %d 배치)\n", 
+                use_cores, length(batch_ranges)))
+    
+    # 안전한 parLapply 실행
+    batch_results <- parLapply(cl, batch_ranges, function(range_info) {
+      return(process_batch_safe(
+        batch_start = range_info[1], 
+        batch_end = range_info[2],
+        cong_available = USE_CONG_MODEL,
+        dict_file_path = if(USE_USER_DICT && !is.null(selected_dict)) selected_dict else NULL
+      ))
+    })
+    
+    # 클러스터 정리
+    stopCluster(cl)
+    cat("✅ 병렬 처리 완료!\n")
+    
+  }, error = function(e) {
+    # 병렬 처리 실패 시 직렬 처리로 fallback
+    cat(sprintf("❌ 병렬 처리 실패: %s\n", e$message))
+    cat("🔄 직렬 처리로 전환 중...\n")
+    
+    # 클러스터가 있다면 정리
+    if (exists("cl")) {
+      tryCatch(stopCluster(cl), error = function(e) {})
+    }
+    
+    # 직렬 처리 실행
+    batch_results <- list()
+    for (i in 1:length(batch_ranges)) {
+      range_info <- batch_ranges[[i]]
+      cat(sprintf("처리 중: 배치 %d/%d (%d-%d)\n", i, length(batch_ranges), 
+                  range_info[1], range_info[2]))
+      
+      result <- process_batch_safe(
+        batch_start = range_info[1], 
+        batch_end = range_info[2],
+        cong_available = USE_CONG_MODEL,
+        dict_file_path = if(USE_USER_DICT && !is.null(selected_dict)) selected_dict else NULL
+      )
+      
+      batch_results[[i]] <- result
+    }
+  })
+}
 
-# 각 워커에 필요한 패키지 로드 (병렬)
-clusterEvalQ(cl, {
-  library(reticulate)
-  library(dplyr)
-})
-
-# 메모리 효율적인 함수 전송
-cat("📦 함수 및 데이터 전송 중...\n")
-clusterExport(cl, c("process_batch_parallel", "extract_nouns_enhanced_xsn", "analyze_morphemes_enhanced", 
-                    "available_memory_gb", "memory_tier", "use_cores", "n_cores"))
-
-# 클러스터 성능 최적화
-clusterEvalQ(cl, {
-  # R 메모리 관리 최적화
-  options(warn = -1)  # 워커에서 경고 억제
-  invisible(gc())     # 가비지 컬렉션
-})
-
-# 배치와 매개변수를 함께 전달
-batch_with_params <- lapply(1:length(batches), function(i) {
-  list(
-    data = batches[[i]], 
-    num = i,
-    USE_CONG_MODEL = USE_CONG_MODEL,
-    USE_USER_DICT = USE_USER_DICT,
-    selected_dict = selected_dict
-  )
-})
-
-cat(sprintf("🔥 병렬 배치 처리 시작... (%d 워커 × %d 배치)\n", use_cores, length(batches)))
-
-batch_results <- parLapply(cl, batch_with_params, function(x) {
-  result <- process_batch_parallel(x$data, x$num, x$USE_CONG_MODEL, x$USE_USER_DICT, x$selected_dict)
-  return(result)
-})
-
-# 클러스터 정리 및 리소스 해제
-cat("🧹 클러스터 정리 중...\n")
-stopCluster(cl)
 invisible(gc())  # 메모리 해제
-cat("✅ 병렬 처리 완료! 리소스 최적화 성공\n")
 
-# 워커별 성능 분석
+# 배치 결과 분석 및 통합
 worker_times <- sapply(batch_results, function(x) {
-  if (!is.null(x$worker_total_time)) {
-    return(x$worker_total_time)
+  if (!is.null(x$processing_time)) {
+    return(x$processing_time)
   } else {
     return(NA)
   }
 })
 
+# 사전 로드 상태 분석
+dict_status <- sapply(batch_results, function(x) {
+  if (!is.null(x$dict_loaded)) {
+    return(x$dict_loaded)
+  } else {
+    return(FALSE)
+  }
+})
+
+successful_dict_loads <- sum(dict_status, na.rm = TRUE)
+total_workers <- length(dict_status)
+
+cat(sprintf("\n🔍 배치 처리 성능 분석:\n"))
 if (any(!is.na(worker_times))) {
-  cat(sprintf("🔍 워커 성능 분석:\n"))
-  cat(sprintf("  └─ 평균 워커 시간: %.2f초\n", mean(worker_times, na.rm = TRUE)))
-  cat(sprintf("  └─ 최빠른 워커: %.2f초\n", min(worker_times, na.rm = TRUE)))
-  cat(sprintf("  └─ 가장 느린 워커: %.2f초\n", max(worker_times, na.rm = TRUE)))
+  cat(sprintf("  └─ 평균 배치 시간: %.2f초\n", mean(worker_times, na.rm = TRUE)))
+  cat(sprintf("  └─ 최빠른 배치: %.2f초\n", min(worker_times, na.rm = TRUE)))
+  cat(sprintf("  └─ 가장 느린 배치: %.2f초\n", max(worker_times, na.rm = TRUE)))
   
   # 병렬 효율성 계산
   if (max(worker_times, na.rm = TRUE) > 0) {
@@ -858,25 +962,75 @@ if (any(!is.na(worker_times))) {
   }
 }
 
+# 사전 로드 상태 출력
+cat(sprintf("  └─ 사용자 사전 로드 상태: %d/%d 배치 성공 (%.1f%%)\n", 
+            successful_dict_loads, total_workers, 
+            (successful_dict_loads/total_workers)*100))
+
+if (successful_dict_loads == 0 && USE_USER_DICT) {
+  cat("  ❌ 모든 배치에서 사전 로드 실패!\n")
+} else if (successful_dict_loads < total_workers && USE_USER_DICT) {
+  cat(sprintf("  ⚠️  %d개 배치에서 사전 로드 실패 - 일관성 없는 결과 예상\n", 
+              total_workers - successful_dict_loads))
+} else if (USE_USER_DICT) {
+  cat("  ✅ 모든 배치에서 사전 로드 성공!\n")
+}
+
 total_end_time <- Sys.time()
 total_processing_time <- as.numeric(difftime(total_end_time, total_start_time, units = "secs"))
 
-# ========== 병렬 처리 결과 통합 ==========
-cat("\n========== 병렬 처리 결과 통합 중 ==========\n")
+# ========== 안전한 결과 통합 ==========
+cat("\n========== 결과 통합 중 ==========\n")
 
-# 각 배치 결과에서 데이터프레임 추출 및 통합 (do.call(rbind) 방식)
-morpheme_results <- do.call(rbind, lapply(batch_results, function(x) x$morpheme))
-noun_results <- do.call(rbind, lapply(batch_results, function(x) x$nouns))
+# 결과를 데이터프레임으로 변환
+all_doc_ids <- unlist(lapply(batch_results, function(x) x$doc_ids))
+all_morphemes <- unlist(lapply(batch_results, function(x) x$morphemes))
+all_nouns <- unlist(lapply(batch_results, function(x) x$nouns))
+
+# 형태소 분석 결과 데이터프레임 생성
+morpheme_results <- data.frame(
+  doc_id = character(0),
+  morpheme_analysis = character(0),
+  stringsAsFactors = FALSE
+)
+
+noun_results <- data.frame(
+  doc_id = character(0),
+  noun_extraction = character(0),
+  stringsAsFactors = FALSE
+)
+
+# 유효한 결과만 추가
+if (length(all_doc_ids) > 0) {
+  valid_morpheme_indices <- nchar(all_morphemes) > 0
+  valid_noun_indices <- nchar(all_nouns) > 0
+  
+  if (sum(valid_morpheme_indices) > 0) {
+    morpheme_results <- data.frame(
+      doc_id = all_doc_ids[valid_morpheme_indices],
+      morpheme_analysis = all_morphemes[valid_morpheme_indices],
+      stringsAsFactors = FALSE
+    )
+  }
+  
+  if (sum(valid_noun_indices) > 0) {
+    noun_results <- data.frame(
+      doc_id = all_doc_ids[valid_noun_indices],
+      noun_extraction = all_nouns[valid_noun_indices],
+      stringsAsFactors = FALSE
+    )
+  }
+}
 
 # 통계 계산
-processed_count <- sum(sapply(batch_results, function(x) x$processed_docs))
-success_count <- sum(sapply(batch_results, function(x) x$success_count))
-error_count <- sum(sapply(batch_results, function(x) x$error_count))
+processed_count <- length(all_doc_ids)
+success_count <- sum(nchar(all_morphemes) > 0 | nchar(all_nouns) > 0)
+error_count <- total_docs - processed_count
 
 
 # ========== 결과 통합 및 요약 ==========
 cat("\n========== 개선된 XSN 처리 분석 결과 (병렬 처리) ==========\n")
-cat("분석기 버전: Enhanced XSN Kiwipiepy v2.0 (병렬 최적화)\n")
+cat("분석기 버전: Enhanced XPN+XSN Kiwipiepy v3.0 (병렬 최적화)\n")
 cat(sprintf("사용 코어: %d개 (전체 %d개 중)\n", use_cores, n_cores))
 cat("전체 문서 수:", nrow(analysis_data), "\n")
 cat("처리된 문서 수:", processed_count, "\n")
@@ -891,20 +1045,13 @@ cat(sprintf("리소스 활용 효율성: %d/%d 코어 (%.0f%%) 사용\n",
             use_cores, n_cores, (use_cores/n_cores)*100))
 
 # 병렬 처리 효율성 분석
-batch_times <- sapply(batch_results, function(x) {
-  if (!is.null(x$processing_time)) {
-    return(as.numeric(difftime(x$processing_time, total_start_time, units = "secs")))
-  } else {
-    return(NA)
-  }
-})
-batch_times <- batch_times[!is.na(batch_times)]
+valid_times <- worker_times[!is.na(worker_times)]
 
-if (length(batch_times) > 0) {
+if (length(valid_times) > 0) {
   cat("배치 완료 시간 분포:\n")
-  cat(sprintf("  최초 배치 완료: %.1f초\n", min(batch_times)))
-  cat(sprintf("  최종 배치 완료: %.1f초\n", max(batch_times)))
-  cat(sprintf("  평균 배치 완료: %.1f초\n", mean(batch_times)))
+  cat(sprintf("  최빠른 배치 완료: %.1f초\n", min(valid_times)))
+  cat(sprintf("  가장 느린 배치 완료: %.1f초\n", max(valid_times)))
+  cat(sprintf("  평균 배치 완료: %.1f초\n", mean(valid_times)))
 }
 
 # ========== 최종 결과 저장 ==========
@@ -927,8 +1074,8 @@ final_results <- list(
     api_used = FALSE,
     batch_size = BATCH_SIZE,
     total_batches = total_batches,
-    # Enhanced XSN Kiwipiepy + 병렬 처리 추가 필드
-    analyzer_type = "Enhanced XSN Kiwipiepy (병렬 최적화)",
+    # Enhanced XPN+XSN Kiwipiepy + 병렬 처리 추가 필드
+    analyzer_type = "Enhanced XPN+XSN Kiwipiepy (병렬 최적화)",
     analyzer_version = if(USE_USER_DICT) "v3.1_parallel_userdict" else "v3.0_parallel", 
     model_type = if(USE_CONG_MODEL) "CoNg" else "기본",
     model_path = if(USE_CONG_MODEL) cong_model_dir else NULL,
@@ -942,9 +1089,9 @@ final_results <- list(
       memory_tier = memory_tier,
       available_memory_gb = available_memory_gb,
       core_utilization_percent = round((use_cores/n_cores)*100, 1),
-      parallel_efficiency = if(length(batch_times) > 0) round((min(batch_times) / max(batch_times)) * 100, 1) else NA,
-      batch_count = length(batches),
-      avg_batch_completion = if(length(batch_times) > 0) round(mean(batch_times), 2) else NA
+      parallel_efficiency = if(length(valid_times) > 0) round((min(valid_times) / max(valid_times)) * 100, 1) else NA,
+      batch_count = length(batch_ranges),
+      avg_batch_completion = if(length(valid_times) > 0) round(mean(valid_times), 2) else NA
     ),
     enhancements = list(
       "배치 레벨 병렬 처리 (최적화 1순위)",
@@ -961,15 +1108,15 @@ final_results <- list(
 )
 
 # 결과 구조화
-saveRDS(final_results, sprintf("data/processed/mp_morpheme_results_enhanced_xsn_%s_%s.rds", timestamp, optional_tag))
+saveRDS(final_results, sprintf("data/processed/%s_morpheme_results_enhanced_xsn_%s.rds", timestamp, optional_tag))
 
 # CSV 형태로 저장
 write.csv(morpheme_results, 
-          sprintf("data/processed/mp_morpheme_analysis_%s_%s.csv", timestamp, optional_tag), 
+          sprintf("data/processed/%s_morpheme_analysis_%s.csv", timestamp, optional_tag), 
           row.names = FALSE, fileEncoding = "UTF-8")
 
 write.csv(noun_results, 
-          sprintf("data/processed/mp_noun_extraction_%s_%s.csv", timestamp, optional_tag), 
+          sprintf("data/processed/%s_noun_extraction_%s.csv", timestamp, optional_tag), 
           row.names = FALSE, fileEncoding = "UTF-8")
 
 # 02_morpheme_analysis.R과 완전히 동일한 구조로 저장 (기본 파일명)
@@ -980,7 +1127,7 @@ enhanced_results <- list(
 )
 
 # 기존 워크플로우 호환을 위한 동일 구조로 저장 (dict_type 기준)
-saveRDS(enhanced_results, sprintf("data/processed/mp_morpheme_results_%s_%s.rds", timestamp, optional_tag))
+saveRDS(enhanced_results, sprintf("data/processed/%s_morpheme_results_%s.rds", timestamp, optional_tag))
 
 # 상세 분석 보고서
 model_info_text <- if(USE_CONG_MODEL) {
@@ -998,9 +1145,9 @@ dict_info_text <- if(USE_USER_DICT && !is.null(selected_dict)) {
 }
 
 report_text <- paste0(
-  "# Enhanced XSN Kiwipiepy 형태소 분석 결과\n\n",
+  "# Enhanced XPN+XSN Kiwipiepy 형태소 분석 결과\n\n",
   "**분석일**: ", Sys.Date(), "\n",
-  "**분석기**: Enhanced XSN Kiwipiepy v2.0\n",
+  "**분석기**: Enhanced XPN+XSN Kiwipiepy v3.0\n",
   "**Python 버전**: ", version_str, "\n",
   model_info_text,
   dict_info_text,
@@ -1014,9 +1161,11 @@ report_text <- paste0(
   "**전체 처리 시간**: ", sprintf("%.2f분", total_processing_time / 60), "\n",
   "**평균 처리 속도**: ", sprintf("%.1f 문서/초", processed_count / total_processing_time), "\n\n",
   "## 태그 기반 명사 추출 특징\n",
-  "- **XSN 태그 기반**: XSN 명사파생접미사를 태그로 직접 추출\n",
-  "- **선행명사 결합**: 선행 명사(NNG/NNP) + XSN 접미사 자동 결합\n", 
-  "- **순수 품사 추출**: NNG, NNP, XSN 태그만 사용한 정확한 추출\n",
+  "- **XPN+XSN 태그 기반**: XPN 명사파생접두사와 XSN 명사파생접미사를 태그로 직접 추출\n",
+  "- **복합 패턴 처리**: XPN + NNG/NNP + XSN 3-way 결합 자동 인식 및 처리\n",
+  "- **접두사 결합**: XPN 접두사 + 명사(NNG/NNP) 자동 결합\n",
+  "- **접미사 결합**: 명사(NNG/NNP) + XSN 접미사 자동 결합 (기존 기능 유지)\n",
+  "- **순수 품사 추출**: NNG, NNP, XPN, XSN 태그만 사용한 정확한 추출\n",
   "- **워크플로우 호환**: 기존 분석 파이프라인과 완전 호환\n\n"
 )
 
@@ -1025,7 +1174,7 @@ if (nrow(noun_results) > 0) {
   noun_freq <- table(all_nouns)
   top_nouns <- head(sort(noun_freq, decreasing = TRUE), 20)
   
-  report_text <- paste0(report_text, "## 상위 20개 명사 (Enhanced XSN 처리)\n")
+  report_text <- paste0(report_text, "## 상위 20개 명사 (Enhanced XPN+XSN 처리)\n")
   for (i in 1:length(top_nouns)) {
     report_text <- paste0(report_text, i, ". ", names(top_nouns)[i], " (", top_nouns[i], "회)\n")
   }
@@ -1100,6 +1249,101 @@ if (nrow(noun_results) > 0) {
     report_text <- paste0(report_text, "\n### NNG/NNP + XSN 결합 명사\n결합 명사가 발견되지 않았습니다.\n")
   }
   
+  # XPN 패턴 분석 추가 - 실제 태그 기반
+  report_text <- paste0(report_text, "\n## XPN 명사파생접두사 패턴 분석 (태그 기반)\n")
+  
+  # 형태소 분석 결과에서 XPN 태그 추출
+  xpn_morphemes <- c()
+  prefix_combined_nouns <- c()
+  triple_combined_nouns <- c()
+  
+  for (i in 1:nrow(morpheme_results)) {
+    morpheme_text <- morpheme_results$morpheme_analysis[i]
+    if (!is.na(morpheme_text) && nchar(morpheme_text) > 0) {
+      # 형태소/태그 쌍으로 분리
+      morphemes <- unlist(strsplit(morpheme_text, "\\s+"))
+      morphemes <- morphemes[nchar(morphemes) > 0]
+      
+      j <- 1
+      while (j <= length(morphemes)) {
+        if (grepl("/XPN$", morphemes[j])) {
+          xpn_form <- gsub("/XPN$", "", morphemes[j])
+          xpn_morphemes <- c(xpn_morphemes, xpn_form)
+          
+          # XPN + NNG/NNP + XSN 3-way 결합 찾기
+          if (j <= length(morphemes) - 2 && 
+              grepl("/(NNG|NNP)$", morphemes[j+1]) && 
+              grepl("/XSN$", morphemes[j+2])) {
+            noun_form <- gsub("/(NNG|NNP)$", "", morphemes[j+1])
+            xsn_form <- gsub("/XSN$", "", morphemes[j+2])
+            triple_form <- paste0(xpn_form, noun_form, xsn_form)
+            triple_combined_nouns <- c(triple_combined_nouns, triple_form)
+          }
+          # XPN + NNG/NNP 2-way 결합 찾기
+          else if (j <= length(morphemes) - 1 && grepl("/(NNG|NNP)$", morphemes[j+1])) {
+            noun_form <- gsub("/(NNG|NNP)$", "", morphemes[j+1])
+            prefix_form <- paste0(xpn_form, noun_form)
+            prefix_combined_nouns <- c(prefix_combined_nouns, prefix_form)
+          }
+        }
+        j <- j + 1
+      }
+    }
+  }
+  
+  # XPN 접두사 빈도 분석
+  if (length(xpn_morphemes) > 0) {
+    xpn_freq <- table(xpn_morphemes)
+    xpn_freq <- sort(xpn_freq, decreasing = TRUE)
+    
+    report_text <- paste0(report_text, "### 발견된 XPN 접두사 (태그 기반 추출)\n")
+    report_text <- paste0(report_text, sprintf("총 XPN 접두사 종류: %d개\n", length(xpn_freq)))
+    report_text <- paste0(report_text, sprintf("총 XPN 사용 빈도: %d회\n\n", sum(xpn_freq)))
+    
+    # 상위 XPN 접두사 보고
+    top_xpn <- head(xpn_freq, 15)
+    for (i in 1:length(top_xpn)) {
+      report_text <- paste0(report_text, sprintf("%d. **%s** (%d회)\n", 
+                           i, names(top_xpn)[i], top_xpn[i]))
+    }
+  } else {
+    report_text <- paste0(report_text, "XPN 태그가 발견되지 않았습니다.\n")
+  }
+  
+  # XPN + NNG/NNP 결합 명사 분석
+  if (length(prefix_combined_nouns) > 0) {
+    prefix_freq <- table(prefix_combined_nouns)
+    prefix_freq <- sort(prefix_freq, decreasing = TRUE)
+    
+    report_text <- paste0(report_text, "\n### XPN + NNG/NNP 결합 명사 분석\n")
+    report_text <- paste0(report_text, sprintf("총 접두사 결합 명사 종류: %d개\n", length(prefix_freq)))
+    report_text <- paste0(report_text, sprintf("총 접두사 결합 명사 빈도: %d회\n\n", sum(prefix_freq)))
+    
+    # 상위 접두사 결합 명사
+    top_prefix <- head(prefix_freq, 15)
+    for (i in 1:length(top_prefix)) {
+      report_text <- paste0(report_text, sprintf("%d. **%s** (%d회)\n", 
+                           i, names(top_prefix)[i], top_prefix[i]))
+    }
+  }
+  
+  # XPN + NNG/NNP + XSN 3-way 결합 명사 분석
+  if (length(triple_combined_nouns) > 0) {
+    triple_freq <- table(triple_combined_nouns)
+    triple_freq <- sort(triple_freq, decreasing = TRUE)
+    
+    report_text <- paste0(report_text, "\n### XPN + NNG/NNP + XSN 복합 결합 명사 분석\n")
+    report_text <- paste0(report_text, sprintf("총 복합 결합 명사 종류: %d개\n", length(triple_freq)))
+    report_text <- paste0(report_text, sprintf("총 복합 결합 명사 빈도: %d회\n\n", sum(triple_freq)))
+    
+    # 상위 복합 결합 명사
+    top_triple <- head(triple_freq, 10)
+    for (i in 1:length(top_triple)) {
+      report_text <- paste0(report_text, sprintf("%d. **%s** (%d회)\n", 
+                           i, names(top_triple)[i], top_triple[i]))
+    }
+  }
+  
   report_text <- paste0(report_text, "\n## 통계 정보\n")
   report_text <- paste0(report_text, "총 고유 명사 수: ", length(unique(all_nouns)), "\n")
   report_text <- paste0(report_text, "총 명사 빈도: ", length(all_nouns), "\n")
@@ -1107,7 +1351,7 @@ if (nrow(noun_results) > 0) {
 }
 
 # 보고서 파일명에 사전 정보 포함
-report_filename <- sprintf("reports/mp_analysis_report_%s_%s.md", timestamp, optional_tag)
+report_filename <- sprintf("reports/%s_analysis_report_%s.md", timestamp, optional_tag)
 writeLines(report_text, report_filename)
 
 # 임시 파일 정리
@@ -1119,11 +1363,11 @@ for (temp_file in temp_files) {
   }
 }
 
-cat("\n✅ Enhanced XSN Kiwipiepy 형태소 분석 완료!\n")
+cat("\n✅ Enhanced XPN+XSN Kiwipiepy 형태소 분석 완료!\n")
 cat("생성된 파일:\n")
-cat(sprintf("- data/processed/mp_morpheme_results_%s_%s.rds (구조화된 결과)\n", timestamp, optional_tag))
-cat(sprintf("- data/processed/mp_morpheme_results_enhanced_xsn_%s_%s.rds (상세 결과)\n", timestamp, optional_tag))
-cat(sprintf("- data/processed/mp_morpheme_analysis_%s_%s.csv (형태소 분석)\n", timestamp, optional_tag))
-cat(sprintf("- data/processed/mp_noun_extraction_%s_%s.csv (명사 추출)\n", timestamp, optional_tag))
+cat(sprintf("- data/processed/%s_morpheme_results_%s.rds (구조화된 결과)\n", timestamp, optional_tag))
+cat(sprintf("- data/processed/%s_morpheme_results_enhanced_xsn_%s.rds (상세 결과)\n", timestamp, optional_tag))
+cat(sprintf("- data/processed/%s_morpheme_analysis_%s.csv (형태소 분석)\n", timestamp, optional_tag))
+cat(sprintf("- data/processed/%s_noun_extraction_%s.csv (명사 추출)\n", timestamp, optional_tag))
 cat(sprintf("- %s (분석 보고서)\n", report_filename))
 

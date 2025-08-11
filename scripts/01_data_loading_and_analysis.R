@@ -11,7 +11,15 @@ for (pkg in packages) {
   }
 }
 
-# 00_utils.R 로드 (존재하는 경우)
+# 설정 및 유틸리티 함수 로드 (00_ 접두사로 보호됨)
+if (file.exists("scripts/00_config.R")) {
+  source("scripts/00_config.R")
+  initialize_config()
+} else if (file.exists("00_config.R")) {
+  source("00_config.R")
+  initialize_config()
+}
+
 if (file.exists("scripts/00_utils.R")) {
   source("scripts/00_utils.R")
 } else if (file.exists("00_utils.R")) {
@@ -42,7 +50,7 @@ if (!dir.exists("reports")) {
 cat("========== 데이터 불러오기 시작 ==========\n")
 
 # raw_data 폴더의 모든 Excel 파일 목록 가져오기
-file_list <- list.files(raw_data_path, pattern = "\\\\.xls$|\\\\.xlsx$", full.names = TRUE)
+file_list <- list.files(raw_data_path, pattern = "\\.xls$|\\.xlsx$", full.names = TRUE)
 
 cat("발견된 파일 개수:", length(file_list), "\n")
 cat("파일 목록:\n")
@@ -163,11 +171,11 @@ if (length(file_list) > 0) {
     combined_data_csv_filename <- generate_filename(get_config("prefixes", "data_loading"), "combined_data", "csv")
     data_structure_info_filename <- generate_filename(get_config("prefixes", "data_loading"), "data_structure_info", "rds")
   } else {
-    # 기존 방식 (fallback)
+    # 기존 방식 (fallback) - 접두사 제거
     timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
-    combined_data_rds_filename <- sprintf("dl_combined_data_%s.rds", timestamp)
-    combined_data_csv_filename <- sprintf("dl_combined_data_%s.csv", timestamp)
-    data_structure_info_filename <- sprintf("dl_data_structure_info_%s.rds", timestamp)
+    combined_data_rds_filename <- sprintf("%s_combined_data.rds", timestamp)
+    combined_data_csv_filename <- sprintf("%s_combined_data.csv", timestamp)
+    data_structure_info_filename <- sprintf("%s_data_structure_info.rds", timestamp)
   }
   
   saveRDS(combined_data, file = file.path(processed_data_path, combined_data_rds_filename))
@@ -181,7 +189,8 @@ if (length(file_list) > 0) {
   if (exists("generate_filename")) {
     report_filename <- generate_filename(get_config("prefixes", "data_loading"), "data_structure_summary", "md")
   } else {
-    report_filename <- sprintf("dl_data_structure_summary_%s.md", get_timestamp())
+    timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
+    report_filename <- sprintf("%s_data_structure_summary.md", timestamp)
   }
   report_text <- paste0(
     "# 데이터 구조 분석 보고서 (자동 생성)\n\n",

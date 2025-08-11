@@ -18,6 +18,11 @@ if (!endsWith(getwd(), "mopheme_test")) {
     setwd(script_dir)
   }
 }
+
+# 프로젝트 루트 디렉토리로 이동 (scripts 폴더의 상위)
+if (basename(getwd()) == "scripts") {
+  setwd("..")
+}
 cat("작업 디렉토리:", getwd(), "\n")
 
 # 입출력 경로 설정
@@ -31,8 +36,8 @@ if (!dir.exists(output_path)) dir.create(output_path, recursive = TRUE)
 cat("\n========== 1단계: 사전 후보 파일 검색 ==========\n")
 
 # 사용 가능한 후보 파일 찾기
-compound_files <- list.files(candidates_path, pattern = "ng_compound_nouns_candidates_.*\\.csv$", full.names = TRUE)
-proper_files <- list.files(candidates_path, pattern = "ng_proper_nouns_candidates_.*\\.csv$", full.names = TRUE)
+compound_files <- list.files(candidates_path, pattern = ".*_compound_nouns_candidates\\.csv$", full.names = TRUE)
+proper_files <- list.files(candidates_path, pattern = ".*_proper_nouns_candidates\\.csv$", full.names = TRUE)
 
 if (length(compound_files) == 0 && length(proper_files) == 0) {
   stop("사전 후보 파일을 찾을 수 없습니다. 03_ngram_analysis.R를 먼저 실행하세요.")
@@ -120,7 +125,7 @@ if (length(selected_compound_files) > 0) {
         compound_words <- compound_df[!is.na(compound_df$ngram) & compound_df$ngram != "", ]
         if (nrow(compound_words) > 0) {
           compound_words <- data.frame(
-            word = gsub("\\s+", "", compound_words$ngram), # 공백 제거
+            word = gsub("\\s+", "", compound_words$ngram), # 공백 제거 (DTM 일관성을 위해)
             tag = ifelse(is.na(compound_words$pos_tag) | compound_words$pos_tag == "", "NNG", compound_words$pos_tag),
             score = 0.0,
             stringsAsFactors = FALSE
@@ -166,7 +171,7 @@ if (length(selected_proper_files) > 0) {
         proper_words <- proper_df[!is.na(proper_df$noun) & proper_df$noun != "", ]
         if (nrow(proper_words) > 0) {
           proper_words <- data.frame(
-            word = gsub("\\s+", "", proper_words$noun), # 공백 제거
+            word = gsub("\\s+", "", proper_words$noun), # 공백 제거 (DTM 일관성을 위해)
             tag = ifelse(is.na(proper_words$pos_tag) | proper_words$pos_tag == "", "NNP", proper_words$pos_tag),
             score = 0.0,
             stringsAsFactors = FALSE
@@ -197,7 +202,7 @@ if (nrow(all_words) == 0) {
 }
 
 # 기존 사전 파일 확인
-existing_dict_files <- list.files(output_path, pattern = "^kiwi_user_dict_.*\.txt$", full.names = TRUE)
+existing_dict_files <- list.files(output_path, pattern = "^kiwi_user_dict_.*\\.txt$", full.names = TRUE)
 
 MERGE_MODE <- FALSE
 if (length(existing_dict_files) > 0) {
@@ -273,7 +278,7 @@ if (length(existing_dict_files) > 0) {
     cat(sprintf("   실제 추가된 단어: %d개\n", nrow(all_words) - nrow(existing_dict_content)))
     
     # 병합된 사전의 새 이름 생성
-    base_name <- gsub("kiwi_user_dict_|\.txt$", "", basename(base_dict_file))
+    base_name <- gsub("kiwi_user_dict_|\\.txt$", "", basename(base_dict_file))
     date_suffix <- format(Sys.Date(), "%Y%m%d")
     default_name <- sprintf("kiwi_user_dict_%s_merged_%s", base_name, date_suffix)
     
@@ -299,11 +304,11 @@ timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
 
 # 기본 이름 제안 (병합 모드가 아닌 경우에만)
 if (!MERGE_MODE) {
-  default_name_base <- "default"
+  default_name_base <- "educational_terms"
 } else {
   default_name_base <- sprintf("%s_merged", base_name)
 }
-default_name <- sprintf("ud_user_dict_%s_%s", default_name_base, timestamp)
+default_name <- sprintf("%s_user_dict_%s", timestamp, default_name_base)
 
 cat(sprintf("\n1. 기본 이름 사용: %s (추천)\n", default_name))
 cat("2. 사용자 정의 이름 입력\n")
@@ -332,7 +337,7 @@ if (name_choice == "2") {
     optional_tag <- cleaned_name
     cat(sprintf("-> 정리된 사전 태그: %s\n", optional_tag))
   }
-  dict_name <- sprintf("ud_user_dict_%s_%s", optional_tag, timestamp)
+  dict_name <- sprintf("%s_user_dict_%s", timestamp, optional_tag)
 } else {
   # 기본 이름
   optional_tag <- default_name_base
@@ -354,7 +359,7 @@ if (file.exists(output_filename)) {
   
   if (overwrite_choice != "1") {
     # 새 버전 이름 생성
-    base_name <- gsub("\.txt$", "", output_filename)
+    base_name <- gsub("\\.txt$", "", output_filename)
     counter <- 2
     while (file.exists(sprintf("%s_v%d.txt", base_name, counter))) {
       counter <- counter + 1
@@ -403,7 +408,9 @@ cat("\n위 설정으로 사전 파일을 생성하시겠습니까?\n")
 final_confirm <- readline(prompt = "계속하시겠습니까? (y/n): ")
 
 if (tolower(final_confirm) != "y") {
-  stop("사용자가 사전 생성을 취소했습니다.")
+  cat("\n❌ 사전 생성이 취소되었습니다.\n")
+  cat("다시 실행하려면 03-3 스크립트를 재시작하세요.\n")
+  quit(save = "no", status = 0)
 }
 
 # Kiwi 형식에 맞게 저장 (탭으로 구분, 헤더 없음, 따옴표 없음)
