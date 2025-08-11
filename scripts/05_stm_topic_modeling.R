@@ -883,7 +883,7 @@ format(Sys.time(), "%Y년 %m월 %d일 %H시 %M분")
 )
 
 # 전체 보고서 조합
-full_report <- paste0(report_content, distribution_section, temporal_section, final_report)
+full_report <- paste0(report_content, distribution_section)
 
 # 보고서 파일 저장
 tryCatch({
