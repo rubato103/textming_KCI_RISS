@@ -11,6 +11,11 @@ run_morpheme_analysis_pipeline <- function(
   skip_ngram = FALSE  # N그램 분석 건너뛰기
 ) {
   
+  # 프로젝트 루트 디렉토리로 이동 (scripts 폴더의 상위)
+  if (basename(getwd()) == "scripts") {
+    setwd("..")
+  }
+  
   cat("========== 한국어 형태소 분석 파이프라인 시작 ==========\n")
   cat("실행 모드:", ifelse(auto_mode, "자동", "대화형"), "\n")
   cat("실행 단계:", paste(steps, collapse = ", "), "\n\n")
@@ -30,7 +35,7 @@ run_morpheme_analysis_pipeline <- function(
       cat("========== 1단계: 데이터 로딩 및 분석 ==========\n")
       step1_start <- Sys.time()
       
-      source("01_data_loading_and_analysis.R", local = TRUE)
+      source("scripts/01_data_loading_and_analysis.R", local = TRUE)
       
       step1_end <- Sys.time()
       results$step1 <- list(
@@ -52,7 +57,7 @@ run_morpheme_analysis_pipeline <- function(
         Sys.setenv(MORPHEME_CORES = "auto")
       }
       
-      source("02_kiwipiepy_mopheme_analysis.R", local = TRUE)
+      source("scripts/02_kiwipiepy_mopheme_analysis.R", local = TRUE)
       
       step2_end <- Sys.time()
       results$step2 <- list(
@@ -74,7 +79,7 @@ run_morpheme_analysis_pipeline <- function(
       }
       
       tryCatch({
-        source("03-1_ngram_analysis.R", local = TRUE)
+        source("scripts/03-1_ngram_analysis.R", local = TRUE)
         step3_end <- Sys.time()
         results$step3 <- list(
           status = "completed", 
@@ -101,7 +106,7 @@ run_morpheme_analysis_pipeline <- function(
         Sys.setenv(MIN_TERM_FREQ = "2")
       }
       
-      source("04_dtm_creation_interactive.R", local = TRUE)
+      source("scripts/04_dtm_creation_interactive.R", local = TRUE)
       
       step4_end <- Sys.time()
       results$step4 <- list(
@@ -122,7 +127,7 @@ run_morpheme_analysis_pipeline <- function(
         Sys.setenv(STM_AUTO_SELECT = "TRUE")
       }
       
-      source("05_stm_topic_modeling.R", local = TRUE)
+      source("scripts/05_stm_topic_modeling.R", local = TRUE)
       
       step5_end <- Sys.time()
       results$step5 <- list(

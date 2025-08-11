@@ -337,7 +337,7 @@ validate_file_exists <- function(value) {
 config_based_input <- function(config_path, prompt, default = NULL, type = "text") {
   # config에서 값을 먼저 찾기
   if (exists("PROJECT_CONFIG") && !is.null(config_path)) {
-    config_parts <- strsplit(config_path, "\.")[[1]]
+    config_parts <- strsplit(config_path, "\\.")[[1]]
     
     config_value <- PROJECT_CONFIG
     for (part in config_parts) {
@@ -363,10 +363,10 @@ config_based_input <- function(config_path, prompt, default = NULL, type = "text
 }
 
 # ========== 초기화 ==========
-catalog("✅ interactive_utils.R 로드 완료\n")
-catalog(sprintf("실행 모드: %s\n", EXECUTION_MODE))
-catalog("사용 가능한 함수:\n")
-catalog("  - smart_input(): 스마트 사용자 입력\n")
-catalog("  - smart_file_selection(): 스마트 파일 선택\n")
-catalog("  - config_based_input(): 설정 기반 입력\n")
-catalog("  - auto_select_file(): 파일 자동 선택\n\n")
+cat("✅ interactive_utils.R 로드 완료\n")
+cat(sprintf("실행 모드: %s\n", EXECUTION_MODE))
+cat("사용 가능한 함수:\n")
+cat("  - smart_input(): 스마트 사용자 입력\n")
+cat("  - smart_file_selection(): 스마트 파일 선택\n")
+cat("  - config_based_input(): 설정 기반 입력\n")
+cat("  - auto_select_file(): 파일 자동 선택\n\n")

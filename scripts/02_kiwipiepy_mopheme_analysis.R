@@ -13,16 +13,23 @@ library(stringr)
 library(parallel)
 
 # 설정 및 유틸리티 함수 로드 (00_ 접두사로 보호됨)
-if (file.exists("00_config.R")) {
+if (file.exists("scripts/00_config.R")) {
+  source("scripts/00_config.R")
+  initialize_config()
+} else if (file.exists("00_config.R")) {
   source("00_config.R")
   initialize_config()
 }
 
-if (file.exists("00_utils.R")) {
+if (file.exists("scripts/00_utils.R")) {
+  source("scripts/00_utils.R")
+} else if (file.exists("00_utils.R")) {
   source("00_utils.R")
 }
 
-if (file.exists("00_interactive_utils.R")) {
+if (file.exists("scripts/00_interactive_utils.R")) {
+  source("scripts/00_interactive_utils.R")
+} else if (file.exists("00_interactive_utils.R")) {
   source("00_interactive_utils.R")
 }
 
@@ -226,7 +233,7 @@ if (dict_choice == "1") {
   
   # 사용 가능한 사전 파일 찾기
   dict_path <- "data/dictionaries/"
-  dict_files <- list.files(dict_path, pattern = "user_dict_.*\.txt$", full.names = TRUE)
+  dict_files <- list.files(dict_path, pattern = "user_dict_.*\\.txt$", full.names = TRUE)
   
   if (length(dict_files) > 0) {
     if (length(dict_files) == 1) {
@@ -274,7 +281,7 @@ if (FALSE) {  # 사용자 사전 로직 비활성화
   
   # 사용 가능한 사전 파일 찾기
   dict_path <- "data/dictionaries/"
-  dict_files <- list.files(dict_path, pattern = "user_dict_.*\.txt$", full.names = TRUE)
+  dict_files <- list.files(dict_path, pattern = "user_dict_.*\\.txt$", full.names = TRUE)
   
   if (length(dict_files) > 0) {
     cat("\n========== 사용 가능한 사전 파일 ==========\n")
@@ -325,7 +332,7 @@ if (FALSE) {  # 사용자 사전 로직 비활성화
       cat(sprintf("✅ 사용자 사전 적용 완료: %d개 단어 추가\n", added_count))
       model_suffix <- if(USE_CONG_MODEL) "cong" else "default"
       dict_type_suffix <- paste0("kiwipiepy_", model_suffix, "_userdict_", 
-                                  gsub("kiwi_user_dict_|\.txt", "", basename(selected_dict)))
+                                  gsub("kiwi_user_dict_|\\.txt", "", basename(selected_dict)))
     } else {
       cat("❌ 사전 선택 안됨\n")
       model_suffix <- if(USE_CONG_MODEL) "cong" else "default"
@@ -384,7 +391,7 @@ cat("\n========== 데이터 불러오기 ==========\n")
 processed_data_path <- "data/processed"
 combined_data_files <- list.files(
   processed_data_path,
-  pattern = "^dl_combined_data_.*\.rds$",
+  pattern = "^dl_combined_data_.*\\.rds$",
   full.names = TRUE
 )
 
@@ -587,6 +594,15 @@ available_memory_gb <- tryCatch({
   }
 })
 
+# 변수 정의 확인
+if (!exists("available_memory_gb") || is.null(available_memory_gb)) {
+  available_memory_gb <- 8  # 기본값 설정
+  cat("⚠️ available_memory_gb 변수 초기화 실패, 기본값 8GB로 설정\n")
+}
+if (!exists("memory_tier")) {
+  memory_tier <- "저사양"  # 기본값 설정
+}
+
 # 최적 코어 수 계산 (실제 성능 기반 조정)
 if (available_memory_gb >= 32) {
   # 고사양: 32GB+ - 사용자 시스템 최적화 (원래 설정 복원)
@@ -782,7 +798,8 @@ clusterEvalQ(cl, {
 
 # 메모리 효율적인 함수 전송
 cat("📦 함수 및 데이터 전송 중...\n")
-clusterExport(cl, c("process_batch_parallel", "extract_nouns_enhanced_xsn", "analyze_morphemes_enhanced"))
+clusterExport(cl, c("process_batch_parallel", "extract_nouns_enhanced_xsn", "analyze_morphemes_enhanced", 
+                    "available_memory_gb", "memory_tier", "use_cores", "n_cores"))
 
 # 클러스터 성능 최적화
 clusterEvalQ(cl, {
@@ -1024,7 +1041,7 @@ if (nrow(noun_results) > 0) {
     morpheme_text <- morpheme_results$morpheme_analysis[i]
     if (!is.na(morpheme_text) && nchar(morpheme_text) > 0) {
       # 형태소/태그 쌍으로 분리
-      morphemes <- unlist(strsplit(morpheme_text, "\s+"))
+      morphemes <- unlist(strsplit(morpheme_text, "\\s+"))
       morphemes <- morphemes[nchar(morphemes) > 0]
       
       j <- 1
@@ -1034,8 +1051,8 @@ if (nrow(noun_results) > 0) {
           xsn_morphemes <- c(xsn_morphemes, xsn_form)
           
           # 선행 명사와 결합된 형태 찾기
-          if (j > 1 && grepl("/(NNG|NNP)$"), morphemes[j-1])) {
-            noun_form <- gsub("/(NNG|NNP)$"), "", morphemes[j-1])
+          if (j > 1 && grepl("/(NNG|NNP)$", morphemes[j-1])) {
+            noun_form <- gsub("/(NNG|NNP)$", "", morphemes[j-1])
             combined_form <- paste0(noun_form, xsn_form)
             combined_nouns <- c(combined_nouns, combined_form)
           }

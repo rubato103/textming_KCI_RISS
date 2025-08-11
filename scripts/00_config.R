@@ -22,17 +22,17 @@ PROJECT_CONFIG <- list(
   # 파일 패턴 설정
   file_patterns = list(
     # 입력 파일 패턴
-    excel_files = "\.(xls|xlsx)$",
-    combined_data = "^dl_combined_data_.*\.rds$",
-    morpheme_results = "^mp_morpheme_results_.*\.rds$", 
-    noun_extraction = "^mp_noun_extraction_.*\.csv$",
-    dtm_results = "^dtm_results_.*\.rds$",
-    stm_results = "^stm_results_.*\.rds$",
+    excel_files = "\\.(xls|xlsx)$",
+    combined_data = "^dl_combined_data_.*\\.rds$",
+    morpheme_results = "^mp_morpheme_results_.*\\.rds$", 
+    noun_extraction = "^mp_noun_extraction_.*\\.csv$",
+    dtm_results = "^dtm_results_.*\\.rds$",
+    stm_results = "^stm_results_.*\\.rds$",
     
     # 사전 관련 패턴
-    compound_candidates = "^ng_compound_nouns_candidates_.*\.csv$",
-    proper_candidates = "^ng_proper_nouns_candidates_.*\.csv$", 
-    user_dict = "^user_dict_.*\.txt$"
+    compound_candidates = "^ng_compound_nouns_candidates_.*\\.csv$",
+    proper_candidates = "^ng_proper_nouns_candidates_.*\\.csv$", 
+    user_dict = "^user_dict_.*\\.txt$"
   ),
   
   # 파일명 접두사 (통일된 명명 규칙)

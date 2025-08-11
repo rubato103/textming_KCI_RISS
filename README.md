@@ -80,9 +80,41 @@ pip install kiwipiepy
 
 ### 3. 전체 파이프라인 실행
 
+**중요**: 반드시 프로젝트 루트 디렉토리에서 실행하세요.
+
 ```r
+# 프로젝트 루트 디렉토리에서 실행 (textmining_KCI_RISS/)
 source("scripts/00_run_pipeline.R")
+run_morpheme_analysis_pipeline(steps = 1:5, auto_mode = TRUE)
 ```
+
+#### 개별 스크립트 실행
+
+```r
+# 1단계: 데이터 로딩 및 분석
+source("scripts/01_data_loading_and_analysis.R")
+
+# 2단계: 형태소 분석 (대화형)
+source("scripts/02_kiwipiepy_mopheme_analysis.R")
+
+# 3단계: N그램 분석
+source("scripts/03-1_ngram_analysis.R")
+
+# 사용자 사전 생성
+source("scripts/03-3_create_user_dict.R")
+
+# DTM 생성
+source("scripts/04_dtm_creation_interactive.R")
+
+# 토픽 모델링
+source("scripts/05_stm_topic_modeling.R")
+```
+
+#### 실행 위치 주의사항
+
+- **✅ 올바른 실행 위치**: `textmining_KCI_RISS/` (프로젝트 루트)
+- **❌ 잘못된 실행 위치**: `textmining_KCI_RISS/scripts/`
+- 모든 스크립트는 자동으로 작업 디렉토리를 설정하지만, 루트에서 시작하는 것을 권장합니다.
 
 ## 주요 특징
 

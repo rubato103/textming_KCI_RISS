@@ -9,7 +9,13 @@ library(dplyr)
 
 # Load the preprocessed data
 # Assuming 'preprocessed_data.RData' contains a 'corpus' object
-load("preprocessed_data.RData") 
+if (file.exists("data/processed/preprocessed_data.RData")) {
+  load("data/processed/preprocessed_data.RData")
+} else if (file.exists("preprocessed_data.RData")) {
+  load("preprocessed_data.RData")
+} else {
+  stop("preprocessed_data.RData 파일을 찾을 수 없습니다. 이전 단계를 먼저 실행해주세요.")
+} 
 
 # --- Create Document-Term Matrix (DTM) ---
 # This process can be resource-intensive for large corpora.
