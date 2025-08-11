@@ -173,11 +173,11 @@ if (ncol(kci_riss_preprocessed_matched) > 0) {
     cat(sprintf("- KCI 등재 구분 NA 수: %d\n", kci_na))
     
     if (pub_year_na == 0 && kci_na == 0) {
-      prevalence_formula <- ~ pub_year + `KCI 등재 구분`
+      prevalence_formula <- ~ s(pub_year) + `KCI 등재 구분`
       use_prevalence <- TRUE
       cat("✅ 메타데이터 공변량 사용: pub_year + KCI 등재 구분\n")
     } else if (pub_year_na == 0) {
-      prevalence_formula <- ~ pub_year  
+      prevalence_formula <- ~ s(pub_year)  
       use_prevalence <- TRUE
       cat("✅ 메타데이터 공변량 사용: pub_year (KCI 등재 구분은 NA값으로 제외)\n")
     } else {
@@ -186,7 +186,7 @@ if (ncol(kci_riss_preprocessed_matched) > 0) {
   } else if ("pub_year" %in% meta_vars) {
     pub_year_na <- sum(is.na(kci_riss_preprocessed_matched$pub_year))
     if (pub_year_na == 0) {
-      prevalence_formula <- ~ pub_year  
+      prevalence_formula <- ~ s(pub_year)  
       use_prevalence <- TRUE
       cat("✅ 메타데이터 공변량 사용: pub_year\n")
     } else {
@@ -302,7 +302,9 @@ cat(sprintf("✅ 문서-토픽 매트릭스 생성 완료: %d개 문서 × %d개
             nrow(doc_topic_proportions), ncol(doc_topic_proportions)))
 
 # 각 문서의 주요 토픽 확인
-main_topics <- apply(doc_topic_proportions, 1, which.max)
+# data.table 객체를 data.frame으로 변환하여 열 선택의 안정성을 확보하고 버그 수정
+topic_cols <- grepl("^Topic", names(doc_topic_proportions))
+main_topics <- apply(as.data.frame(doc_topic_proportions)[, topic_cols], 1, which.max)
 main_topic_props <- apply(doc_topic_proportions, 1, max)
 cat("\n🎯 문서별 주요 토픽 분포:\n")
 topic_dist <- table(main_topics)

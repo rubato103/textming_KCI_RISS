@@ -30,6 +30,7 @@ Rplots.pdf
 reports/*.md
 reports/*.png
 reports/*.jpg
+results/
 
 # ========== 아카이브 폴더 ==========
 # 정리된 파일들 (GitHub에 불필요)
