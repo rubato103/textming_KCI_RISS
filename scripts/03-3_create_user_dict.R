@@ -18,7 +18,7 @@ if (!endsWith(getwd(), "mopheme_test")) {
     setwd(script_dir)
   }
 }
-catalog("작업 디렉토리:", getwd(), "\n")
+cat("작업 디렉토리:", getwd(), "\n")
 
 # 입출력 경로 설정
 candidates_path <- "data/dictionaries/dict_candidates/"
@@ -31,15 +31,15 @@ if (!dir.exists(output_path)) dir.create(output_path, recursive = TRUE)
 cat("\n========== 1단계: 사전 후보 파일 검색 ==========\n")
 
 # 사용 가능한 후보 파일 찾기
-compound_files <- list.files(candidates_path, pattern = "ng_compound_nouns_candidates_.*\.csv$", full.names = TRUE)
-proper_files <- list.files(candidates_path, pattern = "ng_proper_nouns_candidates_.*\.csv$", full.names = TRUE)
+compound_files <- list.files(candidates_path, pattern = "ng_compound_nouns_candidates_.*\\.csv$", full.names = TRUE)
+proper_files <- list.files(candidates_path, pattern = "ng_proper_nouns_candidates_.*\\.csv$", full.names = TRUE)
 
 if (length(compound_files) == 0 && length(proper_files) == 0) {
   stop("사전 후보 파일을 찾을 수 없습니다. 03_ngram_analysis.R를 먼저 실행하세요.")
 }
 
 # 사용 가능한 파일 표시
-catalog("\n사용 가능한 후보 파일:\n")
+cat("\n사용 가능한 후보 파일:\n")
 all_files <- c(compound_files, proper_files)
 for (i in seq_along(all_files)) {
   file_info <- file.info(all_files[i])
@@ -51,9 +51,9 @@ for (i in seq_along(all_files)) {
 }
 
 # 파일 선택 방식
-catalog("\n파일 선택 방식:\n")
-catalog("1. 최신 파일 자동 선택 (추천)\n")
-catalog("2. 수동으로 파일 선택\n")
+cat("\n파일 선택 방식:\n")
+cat("1. 최신 파일 자동 선택 (추천)\n")
+cat("2. 수동으로 파일 선택\n")
 
 file_choice <- readline(prompt = "선택 (1 또는 2): ")
 
@@ -120,7 +120,7 @@ if (length(selected_compound_files) > 0) {
         compound_words <- compound_df[!is.na(compound_df$ngram) & compound_df$ngram != "", ]
         if (nrow(compound_words) > 0) {
           compound_words <- data.frame(
-            word = gsub("\s+", "", compound_words$ngram), # 공백 제거
+            word = gsub("\\s+", "", compound_words$ngram), # 공백 제거
             tag = ifelse(is.na(compound_words$pos_tag) | compound_words$pos_tag == "", "NNG", compound_words$pos_tag),
             score = 0.0,
             stringsAsFactors = FALSE
@@ -166,7 +166,7 @@ if (length(selected_proper_files) > 0) {
         proper_words <- proper_df[!is.na(proper_df$noun) & proper_df$noun != "", ]
         if (nrow(proper_words) > 0) {
           proper_words <- data.frame(
-            word = gsub("\s+", "", proper_words$noun), # 공백 제거
+            word = gsub("\\s+", "", proper_words$noun), # 공백 제거
             tag = ifelse(is.na(proper_words$pos_tag) | proper_words$pos_tag == "", "NNP", proper_words$pos_tag),
             score = 0.0,
             stringsAsFactors = FALSE
@@ -292,7 +292,7 @@ if (MERGE_MODE) {
 } else {
   cat(sprintf("신규 생성: 총 %d개 단어\n", nrow(all_words)))
 }
-catalog("생성할 사전의 이름을 설정하세요.\n")
+cat("생성할 사전의 이름을 설정하세요.\n")
 
 # 기본 이름 제안 (병합 모드가 아닌 경우에만)
 timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
@@ -305,8 +305,8 @@ if (!MERGE_MODE) {
 }
 default_name <- sprintf("ud_user_dict_%s_%s", default_name_base, timestamp)
 
-catalog(sprintf("\n1. 기본 이름 사용: %s (추천)\n", default_name))
-catalog("2. 사용자 정의 이름 입력\n")
+cat(sprintf("\n1. 기본 이름 사용: %s (추천)\n", default_name))
+cat("2. 사용자 정의 이름 입력\n")
 
 name_choice <- readline(prompt = "선택 (1 또는 2): ")
 
@@ -383,7 +383,7 @@ if (nrow(final_dict) > 0) {
   final_dict <- data.frame(word = character(0), tag = character(0), score = numeric(0))
 }
 
-catalog(sprintf("최종 통계:\n"))
+cat(sprintf("최종 통계:\n"))
 if (MERGE_MODE) {
   cat(sprintf("   - 병합 모드: 기존 사전과 신규 단어 병합\n"))
   if (exists("existing_dict_content")) {
@@ -395,11 +395,11 @@ if (MERGE_MODE) {
   cat(sprintf("   - 신규 생성 모드\n"))
   cat(sprintf("   - 중복 제거 전: %d개 단어\n", nrow(all_words)))
 }
-catalog(sprintf("   - 최종 단어 수: %d개\n", nrow(final_dict)))
-catalog(sprintf("   - 최종 파일명: %s\n", basename(output_filename)))
+cat(sprintf("   - 최종 단어 수: %d개\n", nrow(final_dict)))
+cat(sprintf("   - 최종 파일명: %s\n", basename(output_filename)))
 
 # 사용자 최종 확인
-catalog("\n위 설정으로 사전 파일을 생성하시겠습니까?\n")
+cat("\n위 설정으로 사전 파일을 생성하시겠습니까?\n")
 final_confirm <- readline(prompt = "계속하시겠습니까? (y/n): ")
 
 if (tolower(final_confirm) != "y") {
@@ -431,20 +431,20 @@ if (MERGE_MODE) {
   cat("\n========== 사용자 사전 생성 완료! ==========\n")
 }
 
-catalog("파일 정보:\n")
-catalog(sprintf("   - 파일 위치: %s\n", output_filename))
-catalog(sprintf("   - 파일 크기: %.1f KB\n", file.info(output_filename)$size/1024))
-catalog(sprintf("   - 총 등록 단어: %d개\n", nrow(final_dict)))
+cat("파일 정보:\n")
+cat(sprintf("   - 파일 위치: %s\n", output_filename))
+cat(sprintf("   - 파일 크기: %.1f KB\n", file.info(output_filename)$size/1024))
+cat(sprintf("   - 총 등록 단어: %d개\n", nrow(final_dict)))
 
 # 품사별 통계
 tag_stats <- table(final_dict$tag)
-catalog(sprintf("   - 품사별 분포:\n"))
+cat(sprintf("   - 품사별 분포:\n"))
 for (tag in names(tag_stats)) {
   cat(sprintf("     * %s: %d개\n", tag, tag_stats[tag]))
 }
 
 # 미리보기
-catalog("\n사전 내용 미리보기 (상위 10개):\n")
+cat("\n사전 내용 미리보기 (상위 10개):\n")
 preview_dict <- final_dict[1:min(10, nrow(final_dict)), ]
 print(preview_dict, row.names = FALSE)
 
@@ -452,10 +452,10 @@ if (nrow(final_dict) > 10) {
   cat(sprintf("   ... 외 %d개 더\n", nrow(final_dict) - 10))
 }
 
-catalog("\n다음 단계:\n")
-catalog("   1. 02_kiwipiepy_morpheme_analysis.R 스크립트 실행\n")
-catalog("   2. 대화형 메뉴에서 '1. 예 - 사용자 사전 적용' 선택\n")
-catalog(sprintf("   3. 생성된 사전 '%s' 선택\n", basename(output_filename)))
-catalog("   4. 전체 데이터 형태소 분석 실행\n")
+cat("\n다음 단계:\n")
+cat("   1. 02_kiwipiepy_morpheme_analysis.R 스크립트 실행\n")
+cat("   2. 대화형 메뉴에서 '1. 예 - 사용자 사전 적용' 선택\n")
+cat(sprintf("   3. 생성된 사전 '%s' 선택\n", basename(output_filename)))
+cat("   4. 전체 데이터 형태소 분석 실행\n")
 
-catalog("\n사전 생성이 완료되었습니다!\n")
+cat("\n사전 생성이 완료되었습니다!\n")

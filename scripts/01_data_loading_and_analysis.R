@@ -12,7 +12,9 @@ for (pkg in packages) {
 }
 
 # 00_utils.R 로드 (존재하는 경우)
-if (file.exists("00_utils.R")) {
+if (file.exists("scripts/00_utils.R")) {
+  source("scripts/00_utils.R")
+} else if (file.exists("00_utils.R")) {
   source("00_utils.R")
 }
 
@@ -40,7 +42,7 @@ if (!dir.exists("reports")) {
 cat("========== 데이터 불러오기 시작 ==========\n")
 
 # raw_data 폴더의 모든 Excel 파일 목록 가져오기
-file_list <- list.files(raw_data_path, pattern = "\\.xls$|\\.xlsx$", full.names = TRUE)
+file_list <- list.files(raw_data_path, pattern = "\\\\.xls$|\\\\.xlsx$", full.names = TRUE)
 
 cat("발견된 파일 개수:", length(file_list), "\n")
 cat("파일 목록:\n")

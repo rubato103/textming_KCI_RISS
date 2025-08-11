@@ -1,4 +1,3 @@
-```R
 # 05_stm_topic_modeling.R
 # Structural Topic Model (STM) for KCI and RISS data
 
@@ -9,10 +8,16 @@ library(SnowballC) # For stemming
 library(tidyverse) # For data manipulation
 library(tidytext) # For text manipulation
 library(furrr) # For parallel processing
-library(here) # For file paths
+# library(here) # For file paths - 제거됨, 상대 경로 사용
 
 # Load preprocessed data
-load(here("data", "kci_riss_preprocessed.RData"))
+if (file.exists("data/processed/kci_riss_preprocessed.RData")) {
+  load("data/processed/kci_riss_preprocessed.RData")
+} else if (file.exists("data/kci_riss_preprocessed.RData")) {
+  load("data/kci_riss_preprocessed.RData")
+} else {
+  stop("kci_riss_preprocessed.RData 파일을 찾을 수 없습니다. 이전 단계를 먼저 실행해주세요.")
+}
 
 # 2. Prepare data for STM -----------------------------------------------------
 # Create a corpus from the preprocessed data

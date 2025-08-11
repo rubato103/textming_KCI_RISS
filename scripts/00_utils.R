@@ -117,7 +117,7 @@ standardize_year_column <- function(data) {
   if (year_col_found && "pub_year" %in% names(data)) {
     if (is.character(data$pub_year) || is.factor(data$pub_year)) {
       # 4자리 연도 추출
-      year_pattern <- "\b(19|20)\d{2}\b"
+      year_pattern <- "\\b(19|20)\\d{2}\\b"
       extracted_years <- regmatches(as.character(data$pub_year), 
                                    regexpr(year_pattern, as.character(data$pub_year)))
       data$pub_year <- as.numeric(extracted_years)

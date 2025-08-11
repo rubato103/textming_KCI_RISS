@@ -17,13 +17,9 @@ for (pkg in required_packages) {
 cat("✅ 모든 패키지 로드 완료\n")
 
 # ========== 환경 설정 ==========
-# 작업 디렉토리 자동 설정 (CLAUDE.md 가이드라인에 따라)
-if (!endsWith(getwd(), "mopheme_test")) {
-  script_path <- commandArgs(trailingOnly = FALSE)
-  script_dir <- dirname(sub("--file=", "", script_path[grep("--file", script_path)]))
-  if (length(script_dir) > 0 && script_dir != "") {
-    setwd(script_dir)
-  }
+# 프로젝트 루트 디렉토리로 이동 (scripts 폴더의 상위)
+if (basename(getwd()) == "scripts") {
+  setwd("..")
 }
 cat("작업 디렉토리:", getwd(), "\n")
 
