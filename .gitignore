@@ -30,6 +30,8 @@ Rplots.pdf
 reports/*.md
 reports/*.png
 reports/*.jpg
+results/
+plots/
 
 # ========== 아카이브 폴더 ==========
 # 정리된 파일들 (GitHub에 불필요)
@@ -46,6 +48,7 @@ Desktop.ini
 # ========== 개발 환경 파일 ==========
 # VS Code
 .vscode/
+claude.md
 
 # RStudio
 *.Rproj
