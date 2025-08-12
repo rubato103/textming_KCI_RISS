@@ -52,21 +52,6 @@ GitHub 저장소. https://github.com/rubato103/textming_KCI_RISS
 3. **URL**: https://github.com/rubato103/textming_KCI_RISS
 4. **연도**: 2025
 
-## 감사 표시 (Acknowledgment) 예시
-
-### 논문 감사의 글에서
-```
-"본 연구의 텍스트 분석에는 양연동의 R을 이용한 한국어 학술데이터 텍스트마이닝 파이프라인을 활용하였다 
-(https://github.com/rubato103/textming_KCI_RISS)."
-```
-
-### README.md에서
-```markdown
-## Acknowledgments
-This project uses the Text Mining Korean Academic Data using R pipeline developed by Yang, Yeondong.
-GitHub: https://github.com/rubato103/textming_KCI_RISS
-```
-
 ## 라이선스 정보
 
 - **라이선스**: Academic and Educational Use License
@@ -77,7 +62,6 @@ GitHub: https://github.com/rubato103/textming_KCI_RISS
 
 ### 중요 안내
 이 소프트웨어는 **학술 및 교육 목적으로만** 사용할 수 있습니다.
-상업적 이용을 원하시는 경우 별도 문의해주세요.
 
 ## 연락처
 
@@ -99,34 +83,6 @@ GitHub: https://github.com/rubato103/textming_KCI_RISS
 ```
 Lee, M. (2024). Kiwi: Developing a Korean Morphological Analyzer Based on Statistical Language Models and Skip-Bigram. 
 Korean Journal of Digital Humanities, 1(1), 109-136. https://doi.org/10.23287/KJDH.2024.1.1.6
-```
-
-**BibTeX (한국어)**:
-```bibtex
-@article{kiwi2024_kr,
-  title = {Kiwi: 통계적 언어 모델과 Skip-Bigram을 이용한 한국어 형태소 분석기 구현},
-  journal = {디지털인문학},
-  volume = {1},
-  number = {1},
-  pages = {109-136},
-  year = {2024},
-  author = {민철 이},
-  doi = {10.23287/KJDH.2024.1.1.6}
-}
-```
-
-**BibTeX (English)**:
-```bibtex
-@article{kiwi2024_en,
-  title = {Kiwi: Developing a Korean Morphological Analyzer Based on Statistical Language Models and Skip-Bigram},
-  journal = {Korean Journal of Digital Humanities},
-  volume = {1},
-  number = {1},
-  pages = {109-136},
-  year = {2024},
-  author = {Min-chul Lee},
-  doi = {10.23287/KJDH.2024.1.1.6}
-}
 ```
 
 ### 기타 주요 라이브러리
@@ -154,6 +110,6 @@ performed using the Kiwi analyzer (Lee, 2024) and topic modeling using
 the STM package (Roberts et al., 2019).
 ```
 
-## 마지막 당부
+## 당부
 
 본 코드가 연구 및 프로젝트에 기여하기를 바랍니다. 올바른 인용은 오픈소스 생태계 유지에 중요합니다. 특히 Kiwi 형태소 분석기 개발자의 학술적 기여를 인정하여 반드시 인용 바랍니다.
