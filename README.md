@@ -80,10 +80,9 @@ pip install kiwipiepy
 
 ### 3. 전체 파이프라인 실행
 
-**중요**: 반드시 프로젝트 루트 디렉토리에서 실행하세요.
+**중요**: 반드시 scripts 디렉토리에서 실행하세요.
 
 ```r
-# 프로젝트 루트 디렉토리에서 실행 (textmining_KCI_RISS/)
 source("scripts/00_run_pipeline.R")
 run_morpheme_analysis_pipeline(steps = 1:5, auto_mode = TRUE)
 ```
@@ -110,12 +109,6 @@ source("scripts/04_dtm_creation_interactive.R")
 source("scripts/05_stm_topic_modeling.R")
 ```
 
-#### 실행 위치 주의사항
-
-- **✅ 올바른 실행 위치**: `textmining_KCI_RISS/` (프로젝트 루트)
-- **❌ 잘못된 실행 위치**: `textmining_KCI_RISS/scripts/`
-- 모든 스크립트는 자동으로 작업 디렉토리를 설정하지만, 루트에서 시작하는 것을 권장합니다.
-
 ## 주요 특징
 
 ### 다중 데이터 소스 호환성
@@ -123,12 +116,7 @@ source("scripts/05_stm_topic_modeling.R")
 - **KCI**: 고유 논문 ID 기반
 - **RISS**: 해시 기반 고유 ID 자동 생성
 - **동일한 파이프라인**으로 두 데이터 모두 처리
-
-### 성능 최적화
-
-- **병렬 처리**: 15개 코어 활용 (26.9 문서/초)
-- **메모리 최적화**: 대용량 데이터 안정적 처리
-- **배치 처리**: 자동 배치 크기 조정
+- 
 
 ### 지능형 사전 관리
 
@@ -136,32 +124,6 @@ source("scripts/05_stm_topic_modeling.R")
 - **빈도 필터링**: 의미 있는 용어만 선별
 - **사용자 검토**: 수동 검토 후 사전 등록
 
-## 설정 및 커스터마이징
-
-### config.R 주요 설정
-
-```r
-PROJECT_CONFIG <- list(
-  morpheme_analysis = list(
-    default_model = "kiwipiepy",
-    use_cong_model = FALSE,
-    parallel_cores = "auto"
-  ),
-  ngram_analysis = list(
-    default_n_values = c(2, 3),
-    min_frequency = 3,
-    max_candidates = 1000
-  )
-)
-```
-
-### 환경 변수 재정의
-
-```bash
-export MORPHEME_CORES=8
-export INTERACTIVE_MODE=false
-export USE_USER_DICT=true
-```
 
 ## 기여하기
 
@@ -172,27 +134,17 @@ export USE_USER_DICT=true
 특히 다음 분야의 협업을 기대합니다:
 
 - **교육학 연구**: 교육 정책, 제도와 관련된 대량의 텍스트 분석
-- **텍스트마이닝 방법론**: 한국어 NLP, 토픽 모델링, 감성 분석 기법 개발
-- **학제간 연구**: 교육학과 데이터 과학의 융합 연구
+- **텍스트마이닝 방법론**: 한국어 NLP, 토픽 모델링, 감정 분석 기법 개발, 텍스트마이닝 전반
 
 협업 가능 영역:
 
 - **연구 협업**: 공동 연구 프로젝트 및 학술 논문 작성
 - **기능 개발**: 새로운 분석 기법이나 성능 개선
 - **확장 모듈**: 추가적인 텍스트마이닝 방법론 구현
-- **학술 네트워크**: 한국어 텍스트마이닝 연구 커뮤니티 구축
 
 협업 문의:
 
 - Email: rubato103@dodaseo.cc
-
-### 기여 방법
-
-1. 저장소 포크 (Fork the repository)
-2. 기능 브랜치 생성 (Create a feature branch)
-3. 변경 사항 커밋 (Commit your changes)
-4. 브랜치 푸시 (Push to the branch)
-5. 풀 리퀘스트 생성 (Create a Pull Request)
 
 ## 인용 (Citation)
 
