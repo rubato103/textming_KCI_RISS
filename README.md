@@ -31,7 +31,8 @@ graph LR;
     A("Excel 데이터 입력<br>(KCI, RISS)") --> B("데이터 로딩 및 표준화<br>(Script.1)");
     B --> C("형태소 분석<br>(Script.2)");
     C --> D("N그램 분석<br>(Script.3-1)");
-    D --"사용자 검토 및 수정"--> E("사용자 사전 생성<br>(Script.3-3)");
+    D --> I("LLM 활용 복합명사 검토<br>(Script.3-2)");
+    I --"사용자 검토 및 수정"--> E("사용자 사전 생성<br>(Script.3-3)");
      %% Loop for iterative refinement (from E to C)
     E --> C
     C --> F("DTM 생성<br>(Script.4)");
