@@ -19,30 +19,30 @@ PROJECT_CONFIG <- list(
     plots = "plots"
   ),
   
-  # 파일 패턴 설정
+  # 파일 패턴 설정 - 접두사 제거
   file_patterns = list(
     # 입력 파일 패턴
     excel_files = "\\.(xls|xlsx)$",
-    combined_data = "^dl_combined_data_.*\\.rds$",
-    morpheme_results = "^mp_morpheme_results_.*\\.rds$", 
-    noun_extraction = "^mp_noun_extraction_.*\\.csv$",
-    dtm_results = "^dtm_results_.*\\.rds$",
-    stm_results = "^stm_results_.*\\.rds$",
+    combined_data = "combined_data.*\\.rds$",
+    morpheme_results = "morpheme_results.*\\.rds$", 
+    noun_extraction = "noun_extraction.*\\.csv$",
+    dtm_results = "dtm_results.*\\.rds$",
+    stm_results = "stm_results.*\\.rds$",
     
     # 사전 관련 패턴
-    compound_candidates = "^ng_compound_nouns_candidates_.*\\.csv$",
-    proper_candidates = "^ng_proper_nouns_candidates_.*\\.csv$", 
-    user_dict = "^user_dict_.*\\.txt$"
+    compound_candidates = "compound_nouns_candidates.*\\.csv$",
+    proper_candidates = "proper_nouns_candidates.*\\.csv$", 
+    user_dict = "user_dict.*\\.txt$"
   ),
   
-  # 파일명 접두사 (통일된 명명 규칙)
+  # 파일명 접두사 (통일된 명명 규칙) - 접두사 제거
   prefixes = list(
-    data_loading = "dl",      # 01_data_loading_and_analysis.R
-    morpheme = "mp",          # 02_kiwipiepy_morpheme_analysis.R
-    ngram = "ng",             # 03-1_ngram_analysis.R
-    dict = "dict",            # 03-3_create_user_dict.R
-    dtm = "dtm",              # 04_dtm_creation_interactive.R
-    stm = "stm"               # 05_stm_topic_modeling.R
+    data_loading = "",        # 01_data_loading_and_analysis.R
+    morpheme = "",            # 02_kiwipiepy_morpheme_analysis.R
+    ngram = "",               # 03-1_ngram_analysis.R
+    dict = "",                # 03-3_create_user_dict.R
+    dtm = "",                 # 04_dtm_creation_interactive.R
+    stm = ""                  # 05_stm_topic_modeling.R
   ),
   
   # 기본 설정
@@ -173,14 +173,23 @@ get_file_path <- function(type, filename = NULL, create_dir = FALSE) {
   }
 }
 
-# 표준 파일명 생성 함수
+# 표준 파일명 생성 함수 (접두사 제거 지원)
 generate_filename <- function(prefix, suffix = "", extension = "rds") {
   timestamp <- format(Sys.time(), PROJECT_CONFIG$defaults$timestamp_format)
   
-  if (suffix != "") {
-    filename <- sprintf("%s_%s_%s.%s", prefix, timestamp, suffix, extension)
+  # 접두사가 빈 문자열인 경우 처리
+  if (prefix == "" || is.null(prefix)) {
+    if (suffix != "") {
+      filename <- sprintf("%s_%s.%s", timestamp, suffix, extension)
+    } else {
+      filename <- sprintf("%s.%s", timestamp, extension)
+    }
   } else {
-    filename <- sprintf("%s_%s.%s", prefix, timestamp, extension)
+    if (suffix != "") {
+      filename <- sprintf("%s_%s_%s.%s", prefix, timestamp, suffix, extension)
+    } else {
+      filename <- sprintf("%s_%s.%s", prefix, timestamp, extension)
+    }
   }
   
   return(filename)

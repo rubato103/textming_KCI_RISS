@@ -34,6 +34,83 @@ if (!dir.exists("plots")) dir.create("plots", recursive = TRUE)
 if (!dir.exists("reports")) dir.create("reports", recursive = TRUE)
 if (!dir.exists("data/dictionaries/dict_candidates")) dir.create("data/dictionaries/dict_candidates", recursive = TRUE)
 
+# ========== 복합어 정규화 함수 ==========
+# 사용자 사전 기반 복합어 정규화 함수
+normalize_compound_words <- function(text_vector, user_dict_path = NULL) {
+  
+  # 기본 정규화 매핑 (사용자 사전 기반)
+  normalization_map <- list(
+    # 띄어쓰기가 있는 버전을 붙여쓰기 버전으로 통일
+    "비자살적 자해" = "비자살적자해",
+    "비자살적 자해청소년" = "비자살적자해청소년", 
+    "비자살적자해 청소년" = "비자살적자해청소년",
+    "비자살적 자해 청소년" = "비자살적자해청소년",
+    "로지스틱 회귀" = "로지스틱회귀",
+    "매개 효과" = "매개효과",
+    "분석 결과" = "분석결과",
+    "설문 조사" = "설문조사",
+    "실태 조사" = "실태조사",
+    "연구 목적" = "연구목적",
+    "자료 분석" = "자료분석",
+    "자료 수집" = "자료수집",
+    "자해 행동" = "자해행동",
+    "정서 조절" = "정서조절",
+    "정서조절 곤란" = "정서조절곤란",
+    "정서 조절 곤란" = "정서조절곤란",
+    "정신 건강" = "정신건강",
+    "정신건강 실태조사" = "정신건강실태조사",
+    "정신 건강 실태 조사" = "정신건강실태조사",
+    "청소년 자해" = "청소년자해",
+    "청소년자해 행동" = "청소년자해행동",
+    "청소년 자해 행동" = "청소년자해행동"
+  )
+  
+  # 사용자 사전 파일이 제공된 경우 추가 매핑 생성
+  if (!is.null(user_dict_path) && file.exists(user_dict_path)) {
+    tryCatch({
+      dict_lines <- readLines(user_dict_path, encoding = "UTF-8", warn = FALSE)
+      dict_lines <- dict_lines[!grepl("^#", dict_lines) & dict_lines != ""]
+      
+      # 띄어쓰기 버전들 추출하여 정규화 매핑에 추가
+      for (line in dict_lines) {
+        if (grepl("\\t", line)) {
+          term <- trimws(strsplit(line, "\\t")[[1]][1])
+          if (grepl(" ", term)) {  # 띄어쓰기가 있는 경우
+            normalized <- gsub(" ", "", term)  # 공백 제거한 버전으로 통일
+            if (!normalized %in% names(normalization_map)) {
+              normalization_map[[term]] <- normalized
+            }
+          }
+        }
+      }
+    }, error = function(e) {
+      cat("⚠️ 사용자 사전 파일 읽기 오류:", e$message, "\n")
+    })
+  }
+  
+  # 텍스트 벡터에 정규화 적용
+  normalized_text <- text_vector
+  for (spaced_term in names(normalization_map)) {
+    normalized_term <- normalization_map[[spaced_term]]
+    normalized_text <- gsub(spaced_term, normalized_term, normalized_text, fixed = TRUE)
+  }
+  
+  return(normalized_text)
+}
+
+# DTM에서 공백 포함 복합어를 단일 토큰으로 처리하는 함수
+process_compound_tokens <- function(token_vector, user_dict_path = NULL) {
+  
+  # 1단계: 복합어 정규화 적용
+  normalized_tokens <- normalize_compound_words(token_vector, user_dict_path)
+  
+  # 2단계: 중복 제거 및 빈도 통합을 위한 후처리
+  # (동일한 의미의 서로 다른 표기를 하나로 통합)
+  processed_tokens <- normalized_tokens
+  
+  return(processed_tokens)
+}
+
 # ========== 사용자 입력 함수 ==========
 get_numeric_input <- function(prompt, min_val = 1, max_val = Inf, default = NULL) {
   while (TRUE) {
@@ -181,8 +258,8 @@ cat(rep("=", 60), "\n")
 
 cat("\n1️⃣ 형태소 분석 결과 파일 검색 중...\n")
 
-# 모든 명사 추출 결과 파일 검색
-result_files <- list.files("data/processed/", pattern = "^mp_noun_extraction_.*\\.csv$", full.names = TRUE)
+# 모든 명사 추출 결과 파일 검색 (접두사 제거 버전 대응)
+result_files <- list.files("data/processed/", pattern = "noun_extraction.*\\.csv$", full.names = TRUE)
 
 if (length(result_files) == 0) {
   cat("❌ 형태소 분석 결과 파일을 찾을 수 없습니다.\n")
@@ -216,10 +293,10 @@ cat("선택된 파일:", basename(selected_file), "\n")
 
 # ========== 원본 초록 데이터 불러오기 ==========
 cat("\n2️⃣ 원본 초록 데이터 불러오기...\n")
-combined_data_files <- list.files("data/processed/", pattern = "^dl_combined_data_.*\\.rds$", full.names = TRUE)
+combined_data_files <- list.files("data/processed/", pattern = "combined_data.*\\.rds$", full.names = TRUE)
 
 if (length(combined_data_files) == 0) {
-  stop("dl_combined_data_*.rds 파일을 찾을 수 없습니다. 01_data_loading_and_analysis.R을 먼저 실행해주세요.")
+  stop("combined_data_*.rds 파일을 찾을 수 없습니다. 01_data_loading_and_analysis.R을 먼저 실행해주세요.")
 }
 
 # 가장 최신 파일 선택
@@ -300,15 +377,27 @@ cat("설정된 최대 결과 개수:", MAX_RESULTS, "개\n")
 
 # 시각화 옵션
 cat("\n🎨 시각화 옵션\n")
-GENERATE_PLOTS <- get_yes_no_input("빈도 그래프를 생성하시겠습니까?", "y")
+GENERATE_PLOTS <- get_yes_no_input("빈도 그래프를 생성하시겠습니까?", "n")
 GENERATE_WORDCLOUD <- get_yes_no_input("워드클라우드를 생성하시겠습니까?", "n")
 
 # ========== 명사 데이터 전처리 ==========
 cat("\n3️⃣ 명사 데이터 전처리 중...\n")
 
+# 사용자 사전 파일 경로 찾기 (복합어 정규화용)
+user_dict_files <- list.files("data/dictionaries/", pattern = "user_dict.*\\.txt$", full.names = TRUE)
+user_dict_path <- NULL
+if (length(user_dict_files) > 0) {
+  # 가장 최신 사전 파일 선택
+  latest_dict <- user_dict_files[order(file.mtime(user_dict_files), decreasing = TRUE)][1]
+  user_dict_path <- latest_dict
+  cat(sprintf("📖 사용자 사전 파일 발견: %s\n", basename(latest_dict)))
+  cat("🔧 복합어 정규화가 적용됩니다.\n")
+}
+
 # 전체 명사를 하나의 벡터로 변환
 all_nouns <- c()
 doc_noun_lists <- list()
+normalized_count <- 0
 
 for (i in 1:nrow(noun_data)) {
   doc_id <- noun_data$doc_id[i]
@@ -321,6 +410,18 @@ for (i in 1:nrow(noun_data)) {
   # 너무 짧은 명사 제거 (1글자)
   nouns <- nouns[nchar(nouns) > 1]
   
+  # 복합어 정규화 적용
+  if (!is.null(user_dict_path)) {
+    original_nouns <- nouns
+    nouns <- process_compound_tokens(nouns, user_dict_path)
+    
+    # 정규화된 토큰 수 계산
+    changes <- sum(original_nouns != nouns)
+    if (changes > 0) {
+      normalized_count <- normalized_count + changes
+    }
+  }
+  
   all_nouns <- c(all_nouns, nouns)
   doc_noun_lists[[as.character(doc_id)]] <- nouns
 }
@@ -329,6 +430,9 @@ cat("✅ 전처리 완료:\n")
 cat("- 전체 명사 개수:", length(all_nouns), "\n")
 cat("- 고유 명사 개수:", length(unique(all_nouns)), "\n")
 cat("- 분석 문서 수:", length(doc_noun_lists), "\n")
+if (!is.null(user_dict_path) && normalized_count > 0) {
+  cat(sprintf("🔄 복합어 정규화 적용: %d개 토큰 통일\n", normalized_count))
+}
 
 # ========== N그램 분석 실행 ==========
 cat("\n", rep("=", 60), "\n")
@@ -413,9 +517,9 @@ for (n in NGRAM_SIZES) {
   ngram_data <- all_ngram_results[[ngram_key]]
   
   if (!is.null(ngram_data) && is.data.frame(ngram_data) && nrow(ngram_data) > 0) {
-    csv_file <- sprintf("data/dictionaries/dict_candidates/ng_%dgram_results_%s.csv", n, timestamp)
+    csv_file <- sprintf("data/dictionaries/dict_candidates/%s_%dgram_results.csv", timestamp, n)
     write.csv(ngram_data, csv_file, row.names = FALSE, fileEncoding = "UTF-8")
-    cat(sprintf("✅ %d그램 결과 파일: %s (%d개)\n", n, basename(csv_file), nrow(ngram_data)))
+    cat(sprintf("✅ %d그램 결과 생성 (%d개)\n", n, nrow(ngram_data)))
   } else {
     cat(sprintf("⚠️ %d그램 결과가 없어 파일을 생성하지 않습니다.\n", n))
   }
@@ -437,9 +541,9 @@ for (ngram_data in all_ngram_results) {
 }
 
 if (nrow(all_combined) > 0) {
-  combined_csv_file <- sprintf("data/dictionaries/dict_candidates/ng_compound_nouns_candidates_%s.csv", timestamp)
+  combined_csv_file <- sprintf("data/dictionaries/dict_candidates/%s_compound_nouns_candidates.csv", timestamp)
   write.csv(all_combined, combined_csv_file, row.names = FALSE, fileEncoding = "UTF-8")
-  cat(sprintf("✅ 복합명사 후보 파일: %s (%d개)\n", basename(combined_csv_file), nrow(all_combined)))
+  cat(sprintf("✅ 복합명사 후보 생성 (%d개)\n", nrow(all_combined)))
   
   # 검토용 파일 생성 (interactive_ngram_analysis.R 참조)
   cat("\n📋 복합명사 검토용 템플릿 생성 중...\n")
@@ -491,9 +595,9 @@ proper_template <- data.frame(
   stringsAsFactors = FALSE
 )
 
-proper_csv_file <- sprintf("data/dictionaries/dict_candidates/ng_proper_nouns_candidates_%s.csv", timestamp)
+proper_csv_file <- sprintf("data/dictionaries/dict_candidates/%s_proper_nouns_candidates.csv", timestamp)
 write.csv(proper_template, proper_csv_file, row.names = FALSE, fileEncoding = "UTF-8")
-cat(sprintf("✅ 고유명사 후보 파일: %s (빈 템플릿)\n", basename(proper_csv_file)))
+cat("✅ 고유명사 후보 템플릿 생성\n")
 
 # ========== 시각화 생성 ==========
 if (GENERATE_PLOTS && nrow(all_combined) > 0) {
@@ -519,7 +623,7 @@ if (GENERATE_PLOTS && nrow(all_combined) > 0) {
       plot.subtitle = element_text(size = 11, color = "gray60")
     )
   
-  ggsave(sprintf("reports/ng_ngram_results_%s.png", timestamp), p1, width = 12, height = 8, dpi = 300)
+  ggsave(sprintf("reports/%s_ngram_results.png", timestamp), p1, width = 12, height = 8, dpi = 300)
   cat("✅ N그램 결과 그래프 저장\n")
   
   # N그램 크기별 분포
@@ -542,7 +646,7 @@ if (GENERATE_PLOTS && nrow(all_combined) > 0) {
         plot.title = element_text(size = 14, face = "bold")
       )
     
-    ggsave(sprintf("reports/ng_ngram_size_distribution_%s.png", timestamp), p2, width = 8, height = 6, dpi = 300)
+    ggsave(sprintf("reports/%s_ngram_size_distribution.png", timestamp), p2, width = 8, height = 6, dpi = 300)
     cat("✅ N그램 크기별 분포 그래프 저장\n")
   }
 }
@@ -616,24 +720,24 @@ report_text <- paste0(report_text, "## 생성된 파일\n\n")
 for (n in NGRAM_SIZES) {
   ngram_data <- all_ngram_results[[paste0(n, "gram")]]
   if (!is.null(ngram_data) && is.data.frame(ngram_data) && nrow(ngram_data) > 0) {
-    report_text <- paste0(report_text, sprintf("- `ng_%dgram_results_%s.csv`: %d개\n", n, date_suffix, nrow(ngram_data)))
+    report_text <- paste0(report_text, sprintf("- `%s_%dgram_results.csv`: %d개\n", date_suffix, n, nrow(ngram_data)))
   }
 }
 if (nrow(all_combined) > 0) {
-  report_text <- paste0(report_text, sprintf("- `ng_compound_nouns_candidates_%s.csv`: %d개 (복합명사 후보)\n", 
+  report_text <- paste0(report_text, sprintf("- `%s_compound_nouns_candidates.csv`: %d개 (복합명사 후보)\n", 
                                             date_suffix, nrow(all_combined)))
 }
-report_text <- paste0(report_text, sprintf("- `ng_proper_nouns_candidates_%s.csv`: 고유명사 후보 (빈 템플릿)\n", 
+report_text <- paste0(report_text, sprintf("- `%s_proper_nouns_candidates.csv`: 고유명사 후보 (빈 템플릿)\n", 
                                           date_suffix))
 
 report_text <- paste0(report_text, "\n## 다음 단계\n\n")
 report_text <- paste0(report_text, "1. Excel에서 생성된 CSV 파일을 열어 N그램 결과 검토\n")
 report_text <- paste0(report_text, "2. 등록하지 않을 단어의 행을 삭제\n")
 report_text <- paste0(report_text, "3. 고유명사 템플릿에 필요한 고유명사 직접 추가\n")
-report_text <- paste0(report_text, "4. 03-1_register_user_dict_auto.R 실행하여 사전 등록\n")
+report_text <- paste0(report_text, "4. 03-3 스크립트 실행하여 사전 등록\n")
 
 # 보고서 저장
-report_file <- sprintf("reports/ng_analysis_report_%s.md", timestamp)
+report_file <- sprintf("reports/%s_analysis_report_ngram.md", timestamp)
 writeLines(report_text, report_file)
 
 # ========== 완료 메시지 ==========
@@ -647,27 +751,27 @@ cat("\n📁 생성된 파일:\n")
 for (n in NGRAM_SIZES) {
   ngram_data <- all_ngram_results[[paste0(n, "gram")]]
   if (!is.null(ngram_data) && is.data.frame(ngram_data) && nrow(ngram_data) > 0) {
-    cat(sprintf("- ng_%dgram_results_%s.csv (%d개)\n", n, timestamp, nrow(ngram_data)))
+    cat(sprintf("- data/dictionaries/dict_candidates/%s_%dgram_results.csv (%d개)\n", timestamp, n, nrow(ngram_data)))
   }
 }
 
 # 통합 파일
 if (nrow(all_combined) > 0) {
-  cat(sprintf("- ng_compound_nouns_candidates_%s.csv (%d개 복합명사 후보)\n", timestamp, nrow(all_combined)))
+  cat(sprintf("- data/dictionaries/dict_candidates/%s_compound_nouns_candidates.csv (%d개 복합명사 후보)\n", timestamp, nrow(all_combined)))
 }
 
 # 고유명사 템플릿
-cat(sprintf("- ng_proper_nouns_candidates_%s.csv (고유명사 후보 템플릿)\n", timestamp))
+cat(sprintf("- data/dictionaries/dict_candidates/%s_proper_nouns_candidates.csv (고유명사 후보 템플릿)\n", timestamp))
 
 # 보고서
 cat(sprintf("- %s\n", report_file))
 
 if (GENERATE_PLOTS) {
   cat("\n📊 시각화 파일:\n")
-  if (file.exists(sprintf("reports/ng_ngram_results_%s.png", timestamp)))
-    cat(sprintf("- reports/ng_ngram_results_%s.png\n", timestamp))
-  if (file.exists(sprintf("reports/ng_ngram_size_distribution_%s.png", timestamp)))
-    cat(sprintf("- reports/ng_ngram_size_distribution_%s.png\n", timestamp))
+  if (file.exists(sprintf("reports/%s_ngram_results.png", timestamp)))
+    cat(sprintf("- reports/%s_ngram_results.png\n", timestamp))
+  if (file.exists(sprintf("reports/%s_ngram_size_distribution.png", timestamp)))
+    cat(sprintf("- reports/%s_ngram_size_distribution.png\n", timestamp))
 }
 
 if (GENERATE_WORDCLOUD && file.exists(sprintf("reports/ng_ngram_wordcloud_%s.png", timestamp))) {
@@ -678,7 +782,7 @@ cat("\n🔄 다음 단계:\n")
 cat("1. Excel에서 생성된 CSV 파일을 열어 N그램 결과 검토\n")
 cat("2. 등록하지 않을 단어의 행을 삭제\n")
 cat("3. 고유명사 템플릿에 필요한 고유명사 직접 추가\n")
-cat("4. 03-1_register_user_dict_auto.R 실행하여 사전 등록\n")
+cat("4. 03-3 스크립트 실행하여 사전 등록\n")
 cat("5. 등록된 사전으로 02_morpheme_analysis.R 다시 실행\n")
 
 cat("\n✅ 대화형 N그램 분석이 완료되었습니다!\n")
