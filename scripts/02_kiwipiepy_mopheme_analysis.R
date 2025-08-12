@@ -1,10 +1,6 @@
-# 02-3_full_enhanced_kiwipiepy_analysis.R
-# 개선된 XSN 처리로 전체 데이터 형태소 분석 
-# 기능: XSN 명사파생접미사 처리 강화로 고품질 형태소 분석
-# 작성일: 2025-08-08
 
 # ========== 패키지 설치 및 로드 ==========
-cat("========== 개선된 XSN 처리 - 전체 데이터 분석 시작 ==========\n")
+cat("========== 개선된 접두사/접미사 처리 - 전체 데이터 분석 시작 ==========\n")
 
 library(reticulate)
 library(dplyr)
@@ -410,8 +406,10 @@ if (exists("smart_input")) {
 }
 
 if (start_choice == "2") {
-  cat("분석을 취소합니다.\n")
-  quit(save = "no", status = 0)
+  cat("✅ 사용자가 분석을 중단했습니다.\n")
+  cat("터미널을 유지하며 스크립트를 안전하게 종료합니다.\n")
+  # quit() 대신 stop() 사용하여 터미널 유지
+  stop("사용자 요청에 의한 정상 중단", call. = FALSE)
 }
 
 cat("\n✅ 분석을 시작합니다.\n")
@@ -450,18 +448,28 @@ for (pattern in id_patterns) {
   }
 }
 
-abstract_patterns <- c("초록", "abstract", "요약", "summary", "Abstract")
+# abstract 컬럼 우선 사용 (utils.R에서 표준화됨)
 abstract_column <- NULL
-for (pattern in abstract_patterns) {
-  matching_cols <- grep(pattern, names(combined_data), ignore.case = TRUE, value = TRUE)
-  if (length(matching_cols) > 0) {
-    for (col in matching_cols) {
-      if (is.character(combined_data[[col]])) {
-        abstract_column <- col
-        break
+if ("abstract" %in% names(combined_data) && is.character(combined_data[["abstract"]])) {
+  abstract_column <- "abstract"
+  cat("✅ 표준화된 'abstract' 컬럼을 사용합니다.\n")
+} else {
+  # 대체 패턴으로 검색 (한글 우선)
+  abstract_patterns <- c("초록", "국문초록", "국문 초록", "요약", "summary")
+  for (pattern in abstract_patterns) {
+    matching_cols <- grep(pattern, names(combined_data), ignore.case = TRUE, value = TRUE)
+    # 영문 초록은 제외
+    matching_cols <- matching_cols[!grepl("multilingual|다국어|영문|english", matching_cols, ignore.case = TRUE)]
+    
+    if (length(matching_cols) > 0) {
+      for (col in matching_cols) {
+        if (is.character(combined_data[[col]])) {
+          abstract_column <- col
+          break
+        }
       }
+      if (!is.null(abstract_column)) break
     }
-    if (!is.null(abstract_column)) break
   }
 }
 
@@ -603,88 +611,37 @@ if (nrow(analysis_data) == 0) {
 # ========== 병렬 처리 설정 (리소스 최대 활용) ==========
 cat("\n========== 병렬 처리 최적화 ==========\n")
 
-# 시스템 리소스 자동 감지
-n_cores <- detectCores()
+# 시스템 리소스 자동 감지 (CPU 코어 기반 - 가장 안정적)
+n_cores <- parallel::detectCores()
+cat(sprintf("✅ 감지된 CPU 코어 수: %d개\n", n_cores))
 
-# 메모리 기반 동적 코어 수 조정 (Windows 환경)
-available_memory_gb <- tryCatch({
-  # 방법 1: wmic 명령어로 사용 가능 메모리 확인
-  mem_info <- system('wmic OS get FreePhysicalMemory /value', intern = TRUE)
-  free_mem_line <- grep('FreePhysicalMemory=', mem_info, value = TRUE)
-  if (length(free_mem_line) > 0) {
-    free_mem_kb <- as.numeric(sub('FreePhysicalMemory=', '', free_mem_line))
-    detected_memory <- round(free_mem_kb / (1024^2), 1)
-    cat(sprintf("감지된 사용 가능 메모리: %.1f GB\n", detected_memory))
-    return(detected_memory)
-  }
-  
-  # 방법 2: 전체 메모리로 추정 (wmic 실패 시)
-  total_info <- system('wmic computersystem get TotalPhysicalMemory /value', intern = TRUE)
-  total_mem_line <- grep('TotalPhysicalMemory=', total_info, value = TRUE)
-  if (length(total_mem_line) > 0) {
-    total_mem_bytes <- as.numeric(sub('TotalPhysicalMemory=', '', total_mem_line))
-    total_memory <- round(total_mem_bytes / (1024^3), 1)
-    estimated_available <- total_memory * 0.7  # 전체의 70%를 사용 가능으로 추정
-    cat(sprintf("전체 메모리 기반 추정: %.1f GB (전체 %.1f GB의 70%%)\n", 
-                estimated_available, total_memory))
-    return(estimated_available)
-  }
-  
-  # 방법 3: CPU 코어 수로 추정 (모든 방법 실패 시)
-  cores <- parallel::detectCores()
-  if (cores >= 12) {
-    estimated <- 32  # 12코어 이상 = 고사양 시스템 추정
-    cat(sprintf("CPU 코어 수(%d) 기반 추정: %.1f GB\n", cores, estimated))
-    return(estimated)
-  } else if (cores >= 8) {
-    estimated <- 16  # 8-11코어 = 중사양 시스템 추정
-    cat(sprintf("CPU 코어 수(%d) 기반 추정: %.1f GB\n", cores, estimated))
-    return(estimated)
-  } else {
-    estimated <- 8   # 8코어 미만 = 저사양 시스템 추정
-    cat(sprintf("CPU 코어 수(%d) 기반 추정: %.1f GB\n", cores, estimated))
-    return(estimated)
-  }
-}, error = function(e) {
-  # 최종 기본값: CPU 코어 기반 추정
-  cores <- parallel::detectCores()
-  if (cores >= 12) {
-    32  # 고사양 추정
-  } else if (cores >= 8) {
-    16  # 중사양 추정  
-  } else {
-    8   # 저사양 추정
-  }
-})
-
-# 변수 정의 확인
-if (!exists("available_memory_gb") || is.null(available_memory_gb)) {
-  available_memory_gb <- 8  # 기본값 설정
-  cat("⚠️ available_memory_gb 변수 초기화 실패, 기본값 8GB로 설정\n")
-}
-if (!exists("memory_tier")) {
-  memory_tier <- "저사양"  # 기본값 설정
-}
-
-# 최적 코어 수 계산 (실제 성능 기반 조정)
-if (available_memory_gb >= 32) {
-  # 고사양: 32GB+ - 사용자 시스템 최적화 (원래 설정 복원)
-  use_cores <- max(1, n_cores - 1)  # 거의 모든 코어 활용 (1개만 예약)
-  memory_tier <- "고사양"
-} else if (available_memory_gb >= 16) {
-  # 중사양: 16GB+ - 메모리 제약 고려  
-  optimal_cores <- min(8, round(n_cores * 0.75))  # 최대 8코어 또는 75% 활용
-  use_cores <- max(1, optimal_cores)
-  memory_tier <- "중사양"
-} else if (available_memory_gb >= 8) {
-  # 저사양: 8GB+ - 보수적 활용
-  optimal_cores <- min(6, round(n_cores * 0.5))  # 최대 6코어, 50% 활용
-  use_cores <- max(1, optimal_cores)
-  memory_tier <- "저사양"
+# CPU 코어 수만으로 시스템 사양 판단 (심플하고 안정적)
+if (n_cores >= 12) {
+  available_memory_gb <- 32  # 고사양 시스템
+  system_tier <- "고사양"
+} else if (n_cores >= 8) {
+  available_memory_gb <- 16  # 중사양 시스템
+  system_tier <- "중사양"
 } else {
-  # 최저사양: 8GB 미만 - 최소한만 활용
-  use_cores <- max(1, min(4, n_cores - 2))  # 최대 4코어, 시스템 안정성 우선
-  memory_tier <- "최저사양"
+  available_memory_gb <- 8   # 저사양 시스템
+  system_tier <- "저사양"
+}
+
+cat(sprintf("📊 시스템 등급: %s (%d 코어 → %.0f GB 추정)\n", system_tier, n_cores, available_memory_gb))
+
+# 최적 코어 수 계산 (CPU 코어 기반 - 간단하고 안정적)
+if (system_tier == "고사양") {
+  # 고사양: 12+ 코어 - 거의 모든 코어 활용
+  use_cores <- max(1, n_cores - 1)  # 1개만 시스템용으로 예약
+  cat(sprintf("✅ 고사양 시스템: %d개 코어 사용 (전체 %d개 중)\n", use_cores, n_cores))
+} else if (system_tier == "중사양") {
+  # 중사양: 8-11 코어 - 최대 8코어 제한
+  use_cores <- min(8, max(1, n_cores - 1))
+  cat(sprintf("⚠️ 중사양 시스템: %d개 코어 사용 (전체 %d개 중, 최대 8개 제한)\n", use_cores, n_cores))
+} else {
+  # 저사양: 8코어 미만 - 최대 6코어 제한
+  use_cores <- min(6, max(1, round(n_cores * 0.75)))
+  cat(sprintf("⚠️ 저사양 시스템: %d개 코어 사용 (전체 %d개 중, 최대 6개 제한)\n", use_cores, n_cores))
 }
 
 # 안전 범위로 제한
@@ -758,6 +715,11 @@ process_batch_safe <- function(batch_start, batch_end, cong_available, dict_file
       })
     }
     
+    # 인터럽트 체크
+    if (exists(".interrupt_requested", envir = globalenv()) && .interrupt_requested) {
+      return(list(success = FALSE, error = "사용자 중단 요청"))
+    }
+    
     # 전역 데이터에서 배치 추출
     batch_data <- analysis_data[batch_start:min(batch_end, nrow(analysis_data)), ]
     
@@ -820,7 +782,31 @@ process_batch_safe <- function(batch_start, batch_end, cong_available, dict_file
 }
 
 # ========== 형태소 분석 실행 ==========
-cat("\n========== 개선된 XSN 처리 형태소 분석 실행 (안전한 병렬 처리) ==========\n")
+cat("\n========== 개선된 접두사/접미사 처리 형태소 분석 실행 (안전한 병렬 처리) ==========\n")
+
+# 인터럽트 처리를 위한 변수 초기화
+cl <- NULL
+assign(".interrupt_requested", FALSE, envir = globalenv())
+
+# 안전한 클러스터 종료 함수
+cleanup_cluster <- function() {
+  # 인터럽트 플래그 설정
+  assign(".interrupt_requested", TRUE, envir = globalenv())
+  
+  if (!is.null(cl)) {
+    cat("\n⚠️  분석 중단 감지 - 클러스터를 안전하게 종료합니다...\n")
+    tryCatch({
+      stopCluster(cl)
+      cat("✅ 클러스터 안전 종료 완료\n")
+    }, error = function(e) {
+      cat("⚠️  클러스터 종료 중 오류 발생, 강제 종료합니다\n")
+    })
+    cl <<- NULL
+  }
+}
+
+# 스크립트 종료 시 클러스터 정리 보장
+on.exit(cleanup_cluster(), add = TRUE)
 
 total_start_time <- Sys.time()
 
@@ -860,7 +846,11 @@ if (use_cores <= 2 || total_docs <= 50) {
 } else {
   # 병렬 처리 (안전한 방식)
   tryCatch({
-    cl <- makeCluster(use_cores, type = "PSOCK")
+    # 클러스터 생성 (워커 메시지 완전 숨김)
+    temp_outfile <- tempfile()
+    cl <<- makeCluster(use_cores, type = "PSOCK", outfile = temp_outfile)
+    # 임시 파일 정리
+    unlink(temp_outfile)
     
     cat("⚙️  클러스터 환경 설정 중...\n")
     
@@ -870,10 +860,18 @@ if (use_cores <= 2 || total_docs <= 50) {
                         "USE_CONG_MODEL", "USE_USER_DICT", "selected_dict"))
     
     # 각 워커에서 라이브러리 로드
-    clusterEvalQ(cl, {
-      library(reticulate)
-      library(dplyr)
-      options(warn = -1)
+    # 패키지 로딩 (메시지 숨김)
+    temp_file2 <- tempfile()
+    sink(file = temp_file2)
+    tryCatch({
+      clusterEvalQ(cl, {
+        library(reticulate, quietly = TRUE)
+        library(dplyr, quietly = TRUE, warn.conflicts = FALSE)
+        options(warn = -1)
+      })
+    }, finally = {
+      sink()
+      unlink(temp_file2)
     })
     
     cat(sprintf("🔥 안전한 병렬 배치 처리 시작... (%d 워커 × %d 배치)\n", 
@@ -890,7 +888,10 @@ if (use_cores <= 2 || total_docs <= 50) {
     })
     
     # 클러스터 정리
-    stopCluster(cl)
+    if (!is.null(cl)) {
+      stopCluster(cl)
+      cl <<- NULL
+    }
     cat("✅ 병렬 처리 완료!\n")
     
   }, error = function(e) {
@@ -899,9 +900,7 @@ if (use_cores <= 2 || total_docs <= 50) {
     cat("🔄 직렬 처리로 전환 중...\n")
     
     # 클러스터가 있다면 정리
-    if (exists("cl")) {
-      tryCatch(stopCluster(cl), error = function(e) {})
-    }
+    cleanup_cluster()
     
     # 직렬 처리 실행
     batch_results <- list()
@@ -945,35 +944,30 @@ dict_status <- sapply(batch_results, function(x) {
 successful_dict_loads <- sum(dict_status, na.rm = TRUE)
 total_workers <- length(dict_status)
 
-cat(sprintf("\n🔍 배치 처리 성능 분석:\n"))
+# 성능 분석 (간소화 - 문제 있을 때만 출력)
 if (any(!is.na(worker_times))) {
-  cat(sprintf("  └─ 평균 배치 시간: %.2f초\n", mean(worker_times, na.rm = TRUE)))
-  cat(sprintf("  └─ 최빠른 배치: %.2f초\n", min(worker_times, na.rm = TRUE)))
-  cat(sprintf("  └─ 가장 느린 배치: %.2f초\n", max(worker_times, na.rm = TRUE)))
+  parallel_efficiency <- min(worker_times, na.rm = TRUE) / max(worker_times, na.rm = TRUE) * 100
+  avg_time <- mean(worker_times, na.rm = TRUE)
   
-  # 병렬 효율성 계산
-  if (max(worker_times, na.rm = TRUE) > 0) {
-    parallel_efficiency <- min(worker_times, na.rm = TRUE) / max(worker_times, na.rm = TRUE) * 100
-    cat(sprintf("  └─ 병렬 효율성: %.1f%% (100%% = 완벽한 로드 밸런싱)\n", parallel_efficiency))
-    
-    if (parallel_efficiency < 80) {
-      cat("  ⚠️  낮은 병렬 효율성: 배치 크기 조정 또는 코어 수 감소 고려\n")
-    }
+  if (parallel_efficiency < 80) {
+    cat(sprintf("\n⚠️ 병렬 효율성 문제 감지:\n"))
+    cat(sprintf("  └─ 평균 배치 시간: %.2f초\n", avg_time))
+    cat(sprintf("  └─ 병렬 효율성: %.1f%% (80%% 미만)\n", parallel_efficiency))
+    cat("  └─ 권장: 배치 크기 조정 또는 코어 수 감소 고려\n")
+  } else {
+    cat(sprintf("\n✅ 병렬 처리 성능: %.2f초 (효율성 %.1f%%)\n", avg_time, parallel_efficiency))
   }
 }
 
-# 사전 로드 상태 출력
-cat(sprintf("  └─ 사용자 사전 로드 상태: %d/%d 배치 성공 (%.1f%%)\n", 
-            successful_dict_loads, total_workers, 
-            (successful_dict_loads/total_workers)*100))
-
-if (successful_dict_loads == 0 && USE_USER_DICT) {
-  cat("  ❌ 모든 배치에서 사전 로드 실패!\n")
-} else if (successful_dict_loads < total_workers && USE_USER_DICT) {
-  cat(sprintf("  ⚠️  %d개 배치에서 사전 로드 실패 - 일관성 없는 결과 예상\n", 
-              total_workers - successful_dict_loads))
-} else if (USE_USER_DICT) {
-  cat("  ✅ 모든 배치에서 사전 로드 성공!\n")
+# 사전 로드 상태 (문제 있을 때만 출력)
+if (USE_USER_DICT) {
+  if (successful_dict_loads == 0) {
+    cat("❌ 사용자 사전 로드 완전 실패!\n")
+  } else if (successful_dict_loads < total_workers) {
+    cat(sprintf("⚠️ 사용자 사전 로드: %d/%d 배치 실패\n", 
+                total_workers - successful_dict_loads, total_workers))
+  }
+  # 성공 시에는 출력하지 않음 (불필요한 메시지 제거)
 }
 
 total_end_time <- Sys.time()
@@ -1029,8 +1023,8 @@ error_count <- total_docs - processed_count
 
 
 # ========== 결과 통합 및 요약 ==========
-cat("\n========== 개선된 XSN 처리 분석 결과 (병렬 처리) ==========\n")
-cat("분석기 버전: Enhanced XPN+XSN Kiwipiepy v3.0 (병렬 최적화)\n")
+cat("\n========== 개선된 접두사/접미사 처리 분석 결과 (병렬 처리) ==========\n")
+cat("분석기 버전: 개선된 접두사/접미사 처리 v3.0 (병렬 최적화)\n")
 cat(sprintf("사용 코어: %d개 (전체 %d개 중)\n", use_cores, n_cores))
 cat("전체 문서 수:", nrow(analysis_data), "\n")
 cat("처리된 문서 수:", processed_count, "\n")
@@ -1075,7 +1069,7 @@ final_results <- list(
     batch_size = BATCH_SIZE,
     total_batches = total_batches,
     # Enhanced XPN+XSN Kiwipiepy + 병렬 처리 추가 필드
-    analyzer_type = "Enhanced XPN+XSN Kiwipiepy (병렬 최적화)",
+    analyzer_type = "개선된 접두사/접미사 처리 (병렬 최적화)",
     analyzer_version = if(USE_USER_DICT) "v3.1_parallel_userdict" else "v3.0_parallel", 
     model_type = if(USE_CONG_MODEL) "CoNg" else "기본",
     model_path = if(USE_CONG_MODEL) cong_model_dir else NULL,
@@ -1086,7 +1080,7 @@ final_results <- list(
     parallel_info = list(
       cores_used = use_cores,
       total_cores = n_cores,
-      memory_tier = memory_tier,
+      system_tier = system_tier,
       available_memory_gb = available_memory_gb,
       core_utilization_percent = round((use_cores/n_cores)*100, 1),
       parallel_efficiency = if(length(valid_times) > 0) round((min(valid_times) / max(valid_times)) * 100, 1) else NA,
@@ -1145,9 +1139,9 @@ dict_info_text <- if(USE_USER_DICT && !is.null(selected_dict)) {
 }
 
 report_text <- paste0(
-  "# Enhanced XPN+XSN Kiwipiepy 형태소 분석 결과\n\n",
+  "# 개선된 접두사/접미사 처리 형태소 분석 결과\n\n",
   "**분석일**: ", Sys.Date(), "\n",
-  "**분석기**: Enhanced XPN+XSN Kiwipiepy v3.0\n",
+  "**분석기**: 개선된 접두사/접미사 처리 v3.0\n",
   "**Python 버전**: ", version_str, "\n",
   model_info_text,
   dict_info_text,
@@ -1174,7 +1168,7 @@ if (nrow(noun_results) > 0) {
   noun_freq <- table(all_nouns)
   top_nouns <- head(sort(noun_freq, decreasing = TRUE), 20)
   
-  report_text <- paste0(report_text, "## 상위 20개 명사 (Enhanced XPN+XSN 처리)\n")
+  report_text <- paste0(report_text, "## 상위 20개 명사 (개선된 접두사/접미사 처리)\n")
   for (i in 1:length(top_nouns)) {
     report_text <- paste0(report_text, i, ". ", names(top_nouns)[i], " (", top_nouns[i], "회)\n")
   }
@@ -1363,7 +1357,7 @@ for (temp_file in temp_files) {
   }
 }
 
-cat("\n✅ Enhanced XPN+XSN Kiwipiepy 형태소 분석 완료!\n")
+cat("\n✅ 개선된 접두사/접미사 처리 형태소 분석 완료!\n")
 cat("생성된 파일:\n")
 cat(sprintf("- data/processed/%s_morpheme_results_%s.rds (구조화된 결과)\n", timestamp, optional_tag))
 cat(sprintf("- data/processed/%s_morpheme_results_enhanced_xsn_%s.rds (상세 결과)\n", timestamp, optional_tag))

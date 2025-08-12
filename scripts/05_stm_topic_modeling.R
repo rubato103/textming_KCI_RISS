@@ -1,14 +1,48 @@
 # 05_stm_topic_modeling.R
 # Structural Topic Model (STM) for KCI and RISS data
 
-# 1. Load data and libraries ---------------------------------------------------
-library(stm) # For STM
-library(tm) # For text mining
-library(SnowballC) # For stemming
-library(tidyverse) # For data manipulation
-library(tidytext) # For text manipulation
-library(furrr) # For parallel processing
-# library(here) # For file paths - 제거됨, 상대 경로 사용
+# 1. 패키지 설치 및 로드 ---------------------------------------------------
+cat("📦 필요한 패키지 확인 및 설치 중...\n")
+
+# 필요한 패키지 목록
+required_packages <- c("stm", "tm", "SnowballC", "tidyverse", "tidytext", "furrr")
+
+# 패키지 설치 및 로드 함수
+install_and_load <- function(package) {
+  tryCatch({
+    if (!require(package, character.only = TRUE, quietly = TRUE)) {
+      cat(sprintf("📥 %s 패키지를 설치합니다...\n", package))
+      install.packages(package, dependencies = TRUE, repos = "https://cran.rstudio.com/")
+      if (require(package, character.only = TRUE, quietly = TRUE)) {
+        cat(sprintf("✅ %s 패키지 설치 및 로드 완료\n", package))
+        return(TRUE)
+      } else {
+        cat(sprintf("❌ %s 패키지 설치 실패\n", package))
+        return(FALSE)
+      }
+    } else {
+      cat(sprintf("✅ %s 패키지 로드 완료\n", package))
+      return(TRUE)
+    }
+  }, error = function(e) {
+    cat(sprintf("❌ %s 패키지 설치/로드 실패: %s\n", package, e$message))
+    return(FALSE)
+  })
+}
+
+# 모든 패키지 설치 및 로드
+package_status <- list()
+for (pkg in required_packages) {
+  package_status[[pkg]] <- install_and_load(pkg)
+}
+
+# furrr 패키지 상태 확인
+furrr_available <- package_status[["furrr"]]
+if (!furrr_available) {
+  cat("⚠️  furrr 패키지를 사용할 수 없습니다. 병렬 처리 없이 진행합니다.\n")
+}
+
+cat("📦 패키지 로드 완료!\n\n")
 
 # ========== quanteda DTM 데이터 로드 ==========
 cat("\n", rep("=", 60), "\n")
@@ -52,8 +86,13 @@ cat("✅ quanteda → STM 형식 변환 완료\n")
 # 3. Estimate optimal number of topics (K) ------------------------------------
 # This step can be computationally intensive.
 # It's recommended to run this on a subset or with parallel processing.
-# Using `furrr` for parallel processing
-plan(multisession, workers = availableCores() - 1) # Use all but one core
+# 병렬 처리 설정 (furrr 패키지가 사용 가능한 경우에만)
+if (furrr_available) {
+  cat("🚀 병렬 처리를 설정합니다...\n")
+  plan(multisession, workers = availableCores() - 1) # Use all but one core
+} else {
+  cat("⚠️  순차 처리로 진행합니다 (furrr 패키지 없음)\n")
+}
 
 # SearchK function to estimate optimal K
 # This can take a very long time. For demonstration, let's use a smaller range.
@@ -154,54 +193,15 @@ if (length(kci_riss_stm_data$documents) != nrow(kci_riss_preprocessed_matched)) 
   cat(sprintf("✅ 조정 완료: %d개 문서로 통일\n", min_size))
 }
 
-# 메타데이터 변수 확인 및 prevalence 공식 결정
-meta_vars <- names(kci_riss_preprocessed_matched)
-cat(sprintf("\n사용 가능한 메타데이터 변수: %s\n", paste(meta_vars, collapse = ", ")))
+# 공변량 처리 비활성화 설정
+cat("\n📊 순수 토픽 모델링 설정\n")
+cat("ℹ️  공변량(covariate) 없이 순수 토픽 모델링만 수행합니다.\n")
 
-# 메타데이터 변수 존재 여부 및 유효성 검사
+# 공변량 사용 비활성화
 use_prevalence <- FALSE
 prevalence_formula <- NULL
 
-if (ncol(kci_riss_preprocessed_matched) > 0) {
-  # NA 값이 있는 메타데이터 변수 처리
-  if ("pub_year" %in% meta_vars && "KCI 등재 구분" %in% meta_vars) {
-    # NA 값 확인
-    pub_year_na <- sum(is.na(kci_riss_preprocessed_matched$pub_year))
-    kci_na <- sum(is.na(kci_riss_preprocessed_matched$`KCI 등재 구분`))
-    
-    cat(sprintf("- pub_year NA 수: %d\n", pub_year_na))
-    cat(sprintf("- KCI 등재 구분 NA 수: %d\n", kci_na))
-    
-    if (pub_year_na == 0 && kci_na == 0) {
-      prevalence_formula <- ~ s(pub_year) + `KCI 등재 구분`
-      use_prevalence <- TRUE
-      cat("✅ 메타데이터 공변량 사용: pub_year + KCI 등재 구분\n")
-    } else if (pub_year_na == 0) {
-      prevalence_formula <- ~ s(pub_year)  
-      use_prevalence <- TRUE
-      cat("✅ 메타데이터 공변량 사용: pub_year (KCI 등재 구분은 NA값으로 제외)\n")
-    } else {
-      cat("⚠️ 모든 메타데이터 변수에 NA값 존재 - 공변량 없이 진행\n")
-    }
-  } else if ("pub_year" %in% meta_vars) {
-    pub_year_na <- sum(is.na(kci_riss_preprocessed_matched$pub_year))
-    if (pub_year_na == 0) {
-      prevalence_formula <- ~ s(pub_year)  
-      use_prevalence <- TRUE
-      cat("✅ 메타데이터 공변량 사용: pub_year\n")
-    } else {
-      cat("⚠️ pub_year에 NA값 존재 - 공변량 없이 진행\n")
-    }
-  } else {
-    cat("⚠️ 활용 가능한 메타데이터 변수 없음 - 공변량 없이 진행\n")
-  }
-} else {
-  cat("⚠️ 메타데이터가 비어있음 - 공변량 없이 진행\n")
-}
-
-if (!use_prevalence) {
-  cat("✅ prevalence 공식 없이 STM 실행 (순수 토픽 모델링)\n")
-}
+cat("✅ prevalence 공식 없이 STM 실행 (순수 토픽 모델링)\n")
 
 # STM 모델 실행 (메타데이터 활용)
 cat("\n🔨 STM 토픽 모델링 실행 중...\n")
@@ -210,31 +210,16 @@ cat(sprintf("- 문서 수: %d\n", length(kci_riss_stm_data$documents)))
 cat(sprintf("- 어휘 수: %d\n", length(kci_riss_stm_data$vocab)))
 cat(sprintf("- 메타데이터 행 수: %d\n", nrow(kci_riss_preprocessed_matched)))
 
-# prevalence 사용 여부에 따른 STM 모델 실행
-if (use_prevalence) {
-  kci_riss_stm_model <- stm(
-    documents = kci_riss_stm_data$documents,
-    vocab = kci_riss_stm_data$vocab,
-    K = optimal_k,
-    prevalence = prevalence_formula, # 메타데이터 공변량 사용
-    data = kci_riss_preprocessed_matched,
-    max.em.its = 500,  # 올바른 파라미터명
-    init.type = "Spectral",
-    seed = 848,
-    verbose = TRUE
-  )
-} else {
-  # 공변량 없이 순수 토픽 모델링
-  kci_riss_stm_model <- stm(
-    documents = kci_riss_stm_data$documents,
-    vocab = kci_riss_stm_data$vocab,
-    K = optimal_k,
-    max.em.its = 500,  # 올바른 파라미터명
-    init.type = "Spectral",
-    seed = 848,
-    verbose = TRUE
-  )
-}
+# 공변량 없이 순수 토픽 모델링만 실행
+kci_riss_stm_model <- stm(
+  documents = kci_riss_stm_data$documents,
+  vocab = kci_riss_stm_data$vocab,
+  K = optimal_k,
+  max.em.its = 500,  # 올바른 파라미터명
+  init.type = "Spectral",
+  seed = 848,
+  verbose = TRUE
+)
 
 # 5. Analyze STM results ------------------------------------------------------
 
@@ -277,23 +262,10 @@ tryCatch({
   cat(sprintf("⚠️ 토픽 라벨 시각화 오류: %s\n", e$message))
 })
 
-# Estimate topic prevalence (토픽 효과 분석)
-if (use_prevalence) {
-  cat("\n📊 메타데이터 기반 토픽 효과 분석 중...\n")
-  topic_prevalence <- estimateEffect(
-    formula = prevalence_formula, # 앞서 결정된 공식 사용
-    stmobj = kci_riss_stm_model,
-    metadata = kci_riss_preprocessed_matched
-  )
-  
-  cat("✅ 토픽 효과 분석 완료!\n")
-  cat("\n📈 토픽 효과 분석 결과 요약:\n")
-  print(summary(topic_prevalence))
-} else {
-  cat("\n⚠️ 메타데이터가 없어 토픽 효과 분석을 건너뜁니다.\n")
-  cat("📊 순수 토픽 모델링 결과만 제공됩니다.\n")
-  topic_prevalence <- NULL
-}
+# 토픽 효과 분석 비활성화
+cat("\n📊 순수 토픽 모델링 결과 분석\n")
+cat("ℹ️  공변량 효과 분석은 수행하지 않습니다.\n")
+topic_prevalence <- NULL
 
 # Extract topic proportions for each document
 cat("\n📑 문서별 토픽 비율 매트릭스 생성 중...\n")
@@ -700,8 +672,21 @@ for (i in 1:optimal_k) {
     })
   }
   
+  # 토픽별 상위 10개 단어 추출 (사용 가능한 단어 수 확인)
+  n_words_prob <- min(10, ncol(topic_labels$prob))
+  n_words_frex <- min(10, ncol(topic_labels$frex))
+  
+  top10_prob <- paste(topic_labels$prob[topic_idx, 1:n_words_prob], collapse = ", ")
+  top10_frex <- paste(topic_labels$frex[topic_idx, 1:n_words_frex], collapse = ", ")
+  
   topic_section <- sprintf("#### **토픽 %d: %s** (%.2f%%)
-- **주요 용어**: %s
+
+**📊 상위 10개 단어 (확률 기준)**
+%s
+
+**🔍 상위 10개 단어 (FREX 기준)**
+%s
+
 %s
 - **문서 분포**: %d개 문서
 - **특성**: [토픽 %d 관련 연구 영역]
@@ -711,7 +696,8 @@ topic_idx,
 ifelse(length(topic_labels$prob[topic_idx, 1:3]) >= 3, 
        paste(topic_labels$prob[topic_idx, 1:3], collapse = ", "), "주제 미정"),
 topic_props[topic_idx] * 100,
-paste(topic_labels$prob[topic_idx, 1:5], collapse = ", "),
+top10_prob,
+top10_frex,
 representative_papers,
 sum(main_topics == topic_idx),
 topic_idx
@@ -741,36 +727,12 @@ temporal_section <- "
 
 ---
 
-## 📊 시간적 변화 분석 (출판연도 기반)
+## 📊 시간적 변화 분석
 
-### 토픽별 연도 효과
+### 순수 토픽 모델링 결과
+- 공변량 분석 없이 순수 토픽 분포만 분석
+- 시간적 변화 분석은 수행하지 않음
 "
-
-if (exists("topic_prevalence")) {
-  # prevalence 결과에서 유의한 토픽들 추출
-  prevalence_summary <- summary(topic_prevalence)
-  
-  for (i in 1:optimal_k) {
-    # p-value 추출 (단순화된 방법)
-    coef_info <- sprintf("- **토픽 %d**: ", i)
-    
-    # pub_year 계수가 있는지 확인
-    if ("pub_year" %in% rownames(prevalence_summary$tables[[i]])) {
-      pub_year_coef <- prevalence_summary$tables[[i]]["pub_year", "Estimate"]
-      pub_year_pvalue <- prevalence_summary$tables[[i]]["pub_year", "Pr(>|t|)"]
-      
-      trend <- ifelse(pub_year_coef > 0, "증가", "감소")
-      significance <- ifelse(pub_year_pvalue < 0.05, "유의함", 
-                           ifelse(pub_year_pvalue < 0.1, "경계적 유의", "비유의"))
-      
-      coef_info <- paste0(coef_info, sprintf("%s 추세 (%s, p=%.3f)", trend, significance, pub_year_pvalue))
-    } else {
-      coef_info <- paste0(coef_info, "연도 효과 분석 불가")
-    }
-    
-    temporal_section <- paste0(temporal_section, coef_info, "\n")
-  }
-}
 
 # 결론 및 제언
 conclusion_section <- "
@@ -850,9 +812,7 @@ top3_concentration <- sum(topic_props[topic_order[1:min(3, optimal_k)]]) * 100
 topic_balance <- ifelse(max_prop / min_prop < 5, "균형적", "불균형적")
 
 # 시간적 동향 요약
-temporal_summary <- ifelse(exists("topic_prevalence"), 
-                          "출판연도에 따른 토픽별 변화 패턴 확인됨", 
-                          "시간적 변화 분석 데이터 부족")
+temporal_summary <- "공변량 분석 없이 순수 토픽 분포만 분석"
 
 # 균형성 평가
 balance_assessment <- ifelse(topic_balance == "균형적", 

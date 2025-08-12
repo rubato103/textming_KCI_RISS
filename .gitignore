@@ -68,3 +68,4 @@ temp_*
 
 # JSON 분석 결과
 *.json
+.Rproj.user

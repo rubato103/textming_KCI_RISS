@@ -35,20 +35,30 @@ if (!dir.exists(output_path)) dir.create(output_path, recursive = TRUE)
 # ========== 후보 파일 검색 ==========
 cat("\n========== 1단계: 사전 후보 파일 검색 ==========\n")
 
-# 사용 가능한 후보 파일 찾기
-compound_files <- list.files(candidates_path, pattern = ".*_compound_nouns_candidates\\.csv$", full.names = TRUE)
+# 사용 가능한 후보 파일 찾기 (LLM과 ngram 분리)
+ngram_compound_files <- list.files(candidates_path, pattern = ".*_compound_nouns_candidates\\.csv$", full.names = TRUE)
+ngram_compound_files <- ngram_compound_files[!grepl("llm_compound_nouns_candidates", ngram_compound_files)]
+
+llm_compound_files <- list.files(candidates_path, pattern = ".*_llm_compound_nouns_candidates\\.csv$", full.names = TRUE)
+
 proper_files <- list.files(candidates_path, pattern = ".*_proper_nouns_candidates\\.csv$", full.names = TRUE)
 
-if (length(compound_files) == 0 && length(proper_files) == 0) {
+if (length(ngram_compound_files) == 0 && length(llm_compound_files) == 0 && length(proper_files) == 0) {
   stop("사전 후보 파일을 찾을 수 없습니다. 03_ngram_analysis.R를 먼저 실행하세요.")
 }
 
 # 사용 가능한 파일 표시
 cat("\n사용 가능한 후보 파일:\n")
-all_files <- c(compound_files, proper_files)
+all_files <- c(ngram_compound_files, llm_compound_files, proper_files)
 for (i in seq_along(all_files)) {
   file_info <- file.info(all_files[i])
-  file_type <- ifelse(grepl("compound", all_files[i]), "[복합명사]", "[고유명사]")
+  if (grepl("llm_compound_nouns_candidates", all_files[i])) {
+    file_type <- "[복합명사(LLM)]"
+  } else if (grepl("compound_nouns_candidates", all_files[i])) {
+    file_type <- "[복합명사(ngram)]"
+  } else {
+    file_type <- "[고유명사]"
+  }
   cat(sprintf("%s %s (%.1f KB, %s)\n", 
               file_type, basename(all_files[i]), 
               file_info$size/1024,
@@ -64,20 +74,43 @@ file_choice <- readline(prompt = "선택 (1 또는 2): ")
 
 if (file_choice == "2") {
   # 수동 선택 모드
-  cat("\n복합명사 파일 선택:\n")
-  if (length(compound_files) > 0) {
-    for (i in seq_along(compound_files)) {
-      cat(sprintf("%d. %s\n", i, basename(compound_files[i])))
+  selected_ngram_files <- c()
+  selected_llm_files <- c()
+  
+  # ngram 복합명사 파일 선택
+  cat("\n복합명사(ngram) 파일 선택:\n")
+  if (length(ngram_compound_files) > 0) {
+    for (i in seq_along(ngram_compound_files)) {
+      cat(sprintf("%d. %s\n", i, basename(ngram_compound_files[i])))
     }
-    cat(sprintf("%d. 사용 안함\n", length(compound_files) + 1))
+    cat(sprintf("%d. 사용 안함\n", length(ngram_compound_files) + 1))
     
-    compound_choice <- readline(prompt = sprintf("선택 (1-%d): ", length(compound_files) + 1))
-    if (compound_choice %in% as.character(1:length(compound_files))) {
-      selected_compound_files <- c(compound_files[as.numeric(compound_choice)])
-    } else {
-      selected_compound_files <- c()
+    ngram_choice <- readline(prompt = sprintf("선택 (1-%d): ", length(ngram_compound_files) + 1))
+    if (ngram_choice %in% as.character(1:length(ngram_compound_files))) {
+      selected_ngram_files <- c(ngram_compound_files[as.numeric(ngram_choice)])
     }
+  } else {
+    cat("   사용 가능한 파일 없음\n")
   }
+  
+  # LLM 복합명사 파일 선택
+  cat("\n복합명사(LLM) 파일 선택:\n")
+  if (length(llm_compound_files) > 0) {
+    for (i in seq_along(llm_compound_files)) {
+      cat(sprintf("%d. %s\n", i, basename(llm_compound_files[i])))
+    }
+    cat(sprintf("%d. 사용 안함\n", length(llm_compound_files) + 1))
+    
+    llm_choice <- readline(prompt = sprintf("선택 (1-%d): ", length(llm_compound_files) + 1))
+    if (llm_choice %in% as.character(1:length(llm_compound_files))) {
+      selected_llm_files <- c(llm_compound_files[as.numeric(llm_choice)])
+    }
+  } else {
+    cat("   사용 가능한 파일 없음\n")
+  }
+  
+  # 모든 복합명사 파일 통합
+  selected_compound_files <- c(selected_ngram_files, selected_llm_files)
   
   cat("\n고유명사 파일 선택:\n")
   if (length(proper_files) > 0) {
@@ -95,7 +128,9 @@ if (file_choice == "2") {
   }
 } else {
   # 자동 선택 (최신 파일)
-  selected_compound_files <- if(length(compound_files) > 0) c(compound_files[which.max(file.mtime(compound_files))]) else c()
+  selected_ngram_files <- if(length(ngram_compound_files) > 0) c(ngram_compound_files[which.max(file.mtime(ngram_compound_files))]) else c()
+  selected_llm_files <- if(length(llm_compound_files) > 0) c(llm_compound_files[which.max(file.mtime(llm_compound_files))]) else c()
+  selected_compound_files <- c(selected_ngram_files, selected_llm_files)
   selected_proper_files <- if(length(proper_files) > 0) c(proper_files[which.max(file.mtime(proper_files))]) else c()
   cat("-> 최신 파일들을 자동 선택했습니다.\n")
 }
@@ -115,21 +150,46 @@ if (length(selected_compound_files) > 0) {
     tryCatch({
       compound_df <- read.csv(comp_file, fileEncoding = "UTF-8", stringsAsFactors = FALSE)
       
-      if (nrow(compound_df) > 0 && "ngram" %in% names(compound_df)) {
-        # pos_tag가 없으면 기본값 설정
-        if (!"pos_tag" %in% names(compound_df)) {
-          compound_df$pos_tag <- "NNG"
-        }
-        
-        # 데이터 정리 및 변환
-        compound_words <- compound_df[!is.na(compound_df$ngram) & compound_df$ngram != "", ]
-        if (nrow(compound_words) > 0) {
-          compound_words <- data.frame(
-            word = gsub("\\s+", "", compound_words$ngram), # 공백 제거 (DTM 일관성을 위해)
-            tag = ifelse(is.na(compound_words$pos_tag) | compound_words$pos_tag == "", "NNG", compound_words$pos_tag),
-            score = 0.0,
-            stringsAsFactors = FALSE
-          )
+      if (nrow(compound_df) > 0) {
+        # ngram 파일과 LLM 파일 구분 처리
+        if ("ngram" %in% names(compound_df)) {
+          # ngram 파일 처리
+          # pos_tag가 없으면 기본값 설정
+          if (!"pos_tag" %in% names(compound_df)) {
+            compound_df$pos_tag <- "NNG"
+          }
+          
+          # 데이터 정리 및 변환
+          compound_words <- compound_df[!is.na(compound_df$ngram) & compound_df$ngram != "", ]
+          if (nrow(compound_words) > 0) {
+            compound_words <- data.frame(
+              word = gsub("\\s+", "", compound_words$ngram), # 공백 제거 (DTM 일관성을 위해)
+              tag = ifelse(is.na(compound_words$pos_tag) | compound_words$pos_tag == "", "NNG", compound_words$pos_tag),
+              score = 0.0,
+              stringsAsFactors = FALSE
+            )
+          } else {
+            compound_words <- data.frame(word = character(0), tag = character(0), score = numeric(0))
+          }
+        } else if ("word" %in% names(compound_df)) {
+          # LLM 파일 처리
+          # pos가 없으면 기본값 설정
+          if (!"pos" %in% names(compound_df)) {
+            compound_df$pos <- "NNP"
+          }
+          
+          # 데이터 정리 및 변환
+          compound_words <- compound_df[!is.na(compound_df$word) & compound_df$word != "", ]
+          if (nrow(compound_words) > 0) {
+            compound_words <- data.frame(
+              word = gsub("\\s+", "", compound_words$word), # 공백 제거 (DTM 일관성을 위해)
+              tag = ifelse(is.na(compound_words$pos) | compound_words$pos == "", "NNP", compound_words$pos),
+              score = 0.0,
+              stringsAsFactors = FALSE
+            )
+          } else {
+            compound_words <- data.frame(word = character(0), tag = character(0), score = numeric(0))
+          }
         } else {
           compound_words <- data.frame(word = character(0), tag = character(0), score = numeric(0))
         }
@@ -310,39 +370,25 @@ if (!MERGE_MODE) {
 }
 default_name <- sprintf("%s_user_dict_%s", timestamp, default_name_base)
 
-cat(sprintf("\n1. 기본 이름 사용: %s (추천)\n", default_name))
-cat("2. 사용자 정의 이름 입력\n")
+cat(sprintf("\n기본 이름: %s\n", default_name))
+cat("사용자 정의 이름을 입력하거나 엔터를 눌러 기본 이름을 사용하세요.\n")
+cat("규칙: 영문, 숫자, 언더스코어(_), 하이픈(-)만 사용\n")
 
-name_choice <- readline(prompt = "선택 (1 또는 2): ")
+custom_name <- readline(prompt = "사전 이름 (엔터=기본값): ")
 
-if (name_choice == "2") {
-  # 사용자 정의 이름
-  cat("\n사용자 정의 이름을 입력하세요:\n")
-  cat("규칙:\n")
-  cat("   - 영문, 숫자, 언더스코어(_), 하이픈(-)만 사용\n")
-  cat("   - 공백 없이 입력하세요\n")
-  cat("   - 예: educational_terms, my_dict_v1, specialized_vocab\n")
-  
-  custom_name <- readline(prompt = "사전 이름: ")
-  
-  # 입력값 검증 및 정리
-  if (nchar(str_trim(custom_name)) == 0) {
-    cat("빈 이름입니다. 기본 이름을 사용합니다.\n")
-    optional_tag <- default_name_base
-  } else {
-    # 특수문자 제거 및 정리
-    cleaned_name <- str_replace_all(str_trim(custom_name), "[^a-zA-Z0-9_-]", "_")
-    cleaned_name <- str_replace_all(cleaned_name, "_+$", "_") # 연속 언더스코어 제거
-    cleaned_name <- str_replace_all(cleaned_name, "^[_]|[_]$", "") # 앞뒤 언더스코어 제거
-    optional_tag <- cleaned_name
-    cat(sprintf("-> 정리된 사전 태그: %s\n", optional_tag))
-  }
-  dict_name <- sprintf("%s_user_dict_%s", timestamp, optional_tag)
-} else {
-  # 기본 이름
+# 입력값 검증 및 정리
+if (nchar(str_trim(custom_name)) == 0) {
+  cat("-> 기본 이름을 사용합니다.\n")
   optional_tag <- default_name_base
   dict_name <- default_name
-  cat("-> 기본 이름을 사용합니다.\n")
+} else {
+  # 특수문자 제거 및 정리
+  cleaned_name <- str_replace_all(str_trim(custom_name), "[^a-zA-Z0-9_-]", "_")
+  cleaned_name <- str_replace_all(cleaned_name, "_+", "_") # 연속 언더스코어 정리
+  cleaned_name <- str_replace_all(cleaned_name, "^_|_$", "") # 앞뒤 언더스코어 제거
+  optional_tag <- cleaned_name
+  cat(sprintf("-> 사용자 정의 이름: %s\n", optional_tag))
+  dict_name <- sprintf("%s_user_dict_%s", timestamp, optional_tag)
 }
 
 # 최종 파일 경로
@@ -410,7 +456,8 @@ final_confirm <- readline(prompt = "계속하시겠습니까? (y/n): ")
 if (tolower(final_confirm) != "y") {
   cat("\n❌ 사전 생성이 취소되었습니다.\n")
   cat("다시 실행하려면 03-3 스크립트를 재시작하세요.\n")
-  quit(save = "no", status = 0)
+  cat("\n스크립트를 안전하게 종료합니다.\n")
+  stop("사용자가 사전 생성을 취소했습니다.", call. = FALSE)
 }
 
 # Kiwi 형식에 맞게 저장 (탭으로 구분, 헤더 없음, 따옴표 없음)
