@@ -2,18 +2,11 @@
 # 작성일: 2025-01-09
 
 # ========== 데이터 파일 제외 ==========
-# 원본 데이터 (개인정보 및 저작권 보호)
-data/raw_data/*.xls
-data/raw_data/*.xlsx
-data/raw_data/*.csv
+# 전체 데이터 폴더 제외 (원본 데이터 및 분석 결과 모두 포함)
+data/
 
-# 처리된 분석 결과 (크기가 크고 개인별로 다름)
-data/processed/*.rds
-data/processed/*.csv
-data/dictionaries/*.txt
-
-# 사전 후보 파일들 (개인별 분석 결과)
-data/dictionaries/dict_candidates/*.csv
+# 백업 결과 폴더 제외 (분석 결과 백업)
+backup_results/
 
 # ========== 모델 및 임시 파일 ==========
 # CoNg 모델 (크기가 크고 별도 설치 필요)
@@ -61,6 +54,8 @@ claude.md
 fix_duplicate_docids.R
 generate_hash_docids.R
 check_metadata_preservation.R
+debug_*.R
+test_*.R
 
 # 임시 분석 파일들
 *.tmp
