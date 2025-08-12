@@ -446,18 +446,28 @@ for (pattern in id_patterns) {
   }
 }
 
-abstract_patterns <- c("초록", "abstract", "요약", "summary", "Abstract")
+# abstract 컬럼 우선 사용 (utils.R에서 표준화됨)
 abstract_column <- NULL
-for (pattern in abstract_patterns) {
-  matching_cols <- grep(pattern, names(combined_data), ignore.case = TRUE, value = TRUE)
-  if (length(matching_cols) > 0) {
-    for (col in matching_cols) {
-      if (is.character(combined_data[[col]])) {
-        abstract_column <- col
-        break
+if ("abstract" %in% names(combined_data) && is.character(combined_data[["abstract"]])) {
+  abstract_column <- "abstract"
+  cat("✅ 표준화된 'abstract' 컬럼을 사용합니다.\n")
+} else {
+  # 대체 패턴으로 검색 (한글 우선)
+  abstract_patterns <- c("초록", "국문초록", "국문 초록", "요약", "summary")
+  for (pattern in abstract_patterns) {
+    matching_cols <- grep(pattern, names(combined_data), ignore.case = TRUE, value = TRUE)
+    # 영문 초록은 제외
+    matching_cols <- matching_cols[!grepl("multilingual|다국어|영문|english", matching_cols, ignore.case = TRUE)]
+    
+    if (length(matching_cols) > 0) {
+      for (col in matching_cols) {
+        if (is.character(combined_data[[col]])) {
+          abstract_column <- col
+          break
+        }
       }
+      if (!is.null(abstract_column)) break
     }
-    if (!is.null(abstract_column)) break
   }
 }
 

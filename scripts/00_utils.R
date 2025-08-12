@@ -4,6 +4,109 @@
 
 # ========== 데이터 표준화 함수 ==========
 
+# 해시 기반 doc_id 생성 함수 (숫자 ID 생성)
+generate_hash_id <- function(data) {
+  # 식별용 컬럼명 패턴들 (우선순위 순)
+  title_patterns <- c("제목", "논문제목", "제목명", "title", "Title")
+  author_patterns <- c("저자", "저자명", "author", "Author", "작성자")
+  institution_patterns <- c("발행기관", "소속기관", "기관명", "institution", "Institution", "발행처")
+  
+  current_cols <- names(data)
+  
+  # 각 패턴에 해당하는 컬럼 찾기
+  title_col <- NULL
+  author_col <- NULL
+  institution_col <- NULL
+  
+  for (pattern in title_patterns) {
+    if (pattern %in% current_cols) {
+      title_col <- pattern
+      break
+    }
+  }
+  
+  for (pattern in author_patterns) {
+    if (pattern %in% current_cols) {
+      author_col <- pattern
+      break
+    }
+  }
+  
+  for (pattern in institution_patterns) {
+    if (pattern %in% current_cols) {
+      institution_col <- pattern
+      break
+    }
+  }
+  
+  # 해시 생성을 위한 문자열 조합
+  hash_strings <- character(nrow(data))
+  
+  for (i in 1:nrow(data)) {
+    components <- c()
+    
+    # 제목 추가
+    if (!is.null(title_col) && !is.na(data[[title_col]][i])) {
+      components <- c(components, as.character(data[[title_col]][i]))
+    }
+    
+    # 저자 추가
+    if (!is.null(author_col) && !is.na(data[[author_col]][i])) {
+      components <- c(components, as.character(data[[author_col]][i]))
+    }
+    
+    # 발행기관 추가
+    if (!is.null(institution_col) && !is.na(data[[institution_col]][i])) {
+      components <- c(components, as.character(data[[institution_col]][i]))
+    }
+    
+    # 만약 모든 컬럼이 없다면 행 번호 사용
+    if (length(components) == 0) {
+      components <- c(paste0("row_", i))
+    }
+    
+    # 문자열 조합 및 정규화
+    combined_string <- paste(components, collapse = "|")
+    # 공백 제거 및 소문자 변환
+    normalized_string <- gsub("\\s+", "", tolower(combined_string))
+    
+    hash_strings[i] <- normalized_string
+  }
+  
+  # MD5 해시 생성 후 숫자로 변환
+  if (!require("digest", quietly = TRUE)) {
+    install.packages("digest", repos = "https://cran.seoul.go.kr/")
+    library(digest)
+  }
+  
+  # 해시 생성 후 16진수를 10진수로 변환하여 숫자 ID 생성
+  numeric_ids <- sapply(hash_strings, function(x) {
+    # MD5 해시의 앞 8자리를 16진수로 가져옴
+    hex_part <- substr(digest(x, algo = "md5"), 1, 8)
+    # 16진수를 10진수로 변환
+    as.numeric(paste0("0x", hex_part))
+  })
+  
+  # doc숫자 형식으로 변환 (8자리 숫자)
+  doc_ids <- sprintf("doc%08d", numeric_ids %% 100000000)  # doc + 8자리 숫자
+  
+  # 중복 확인 및 처리
+  if (any(duplicated(doc_ids))) {
+    duplicated_indices <- which(duplicated(doc_ids))
+    for (idx in duplicated_indices) {
+      # 중복된 경우 행 번호를 뒤에 붙임
+      doc_ids[idx] <- paste0(doc_ids[idx], "_", sprintf("%03d", idx))
+    }
+  }
+  
+  cat(sprintf("✅ 숫자 기반 doc_id 생성 완료: %d개\n", length(doc_ids)))
+  cat(sprintf("   - 제목 컬럼: %s\n", ifelse(is.null(title_col), "없음", title_col)))
+  cat(sprintf("   - 저자 컬럼: %s\n", ifelse(is.null(author_col), "없음", author_col)))
+  cat(sprintf("   - 기관 컬럼: %s\n", ifelse(is.null(institution_col), "없음", institution_col)))
+  
+  return(doc_ids)
+}
+
 # ID 컬럼명을 doc_id로 통일하는 함수
 standardize_id_column <- function(data) {
   # 가능한 ID 컬럼명 패턴들
@@ -30,59 +133,176 @@ standardize_id_column <- function(data) {
   }
   
   if (!id_col_found) {
-    warning("⚠️ ID 컬럼을 찾을 수 없습니다. 첫 번째 컬럼을 doc_id로 가정합니다.")
-    names(data)[1] <- "doc_id"
+    cat("⚠️ ID 컬럼을 찾을 수 없습니다. 해시 기반 doc_id를 생성합니다.\n")
+    data$doc_id <- generate_hash_id(data)
+  } else {
+    # doc_id를 문자형으로 변환
+    data$doc_id <- as.character(data$doc_id)
+    
+    # 중복 확인 및 처리
+    if (any(duplicated(data$doc_id))) {
+      cat("⚠️ 기존 doc_id에 중복이 발견되었습니다. 해시 기반 doc_id로 재생성합니다.\n")
+      data$doc_id <- generate_hash_id(data)
+    }
   }
-  
-  # doc_id를 문자형으로 변환
-  data$doc_id <- as.character(data$doc_id)
   
   return(data)
 }
 
-# 초록/텍스트 컬럼명을 abstract로 통일하는 함수
+# 한글 초록 선별 및 텍스트 컬럼 표준화 함수
 standardize_text_column <- function(data) {
-  # 가능한 텍스트 컬럼명 패턴들
-  text_patterns <- c("초록", "Abstract", "abstract", "요약", "Summary", 
-                   "본문", "내용", "텍스트", "text")
+  # 초록 관련 컬럼들을 모두 찾아서 한글 초록만 선별
+  abstract_patterns <- c("국문 초록 (Abstract)", "국문초록", "국문 초록", "초록", 
+                        "영문초록", "영문 초록", "Abstract", "abstract",
+                        "다국어초록", "다국어 초록", "요약", "Summary")
   
   # 현재 데이터의 컬럼명 확인
   current_cols <- names(data)
   
-  # 텍스트 컬럼 찾기
-  text_col_found <- FALSE
-  for (pattern in text_patterns) {
-    if (pattern %in% current_cols && pattern != "abstract") {
-      # 문자형 컬럼인지 확인
-      if (is.character(data[[pattern]])) {
-        names(data)[names(data) == pattern] <- "abstract"
-        cat(sprintf("✅ 텍스트 컬럼 표준화: '%s' → 'abstract'\n", pattern))
-        text_col_found <- TRUE
-        break
-      }
-    } else if ("abstract" %in% current_cols) {
-      cat("✅ abstract 컬럼이 이미 존재합니다.\n")
-      text_col_found <- TRUE
-      break
+  # 초록 관련 컬럼들을 모두 수집
+  abstract_cols <- c()
+  for (pattern in abstract_patterns) {
+    if (pattern %in% current_cols && is.character(data[[pattern]])) {
+      abstract_cols <- c(abstract_cols, pattern)
     }
   }
   
-  if (!text_col_found) {
-    # 문자형 컬럼 중 가장 긴 텍스트를 가진 컬럼을 abstract로 가정
-    char_cols <- names(data)[sapply(data, is.character)]
-    if (length(char_cols) > 0) {
-      max_length_col <- char_cols[1]
-      max_length <- 0
-      for (col in char_cols) {
-        avg_length <- mean(nchar(data[[col]][!is.na(data[[col]])]), na.rm = TRUE)
-        if (avg_length > max_length) {
-          max_length_col <- col
+  cat(sprintf("🔍 초록 관련 컬럼 발견: %d개\n", length(abstract_cols)))
+  for (col in abstract_cols) {
+    cat(sprintf("   - %s\n", col))
+  }
+  
+  # 한글 초록 선별 함수
+  is_korean_text <- function(text_vector) {
+    if (length(text_vector) == 0) return(FALSE)
+    
+    # NA가 아닌 텍스트들만 검사
+    valid_texts <- text_vector[!is.na(text_vector) & nchar(text_vector) > 10]
+    if (length(valid_texts) == 0) return(FALSE)
+    
+    # 샘플 텍스트들의 한글 비율 검사
+    sample_size <- min(10, length(valid_texts))
+    sample_texts <- sample(valid_texts, sample_size)
+    
+    korean_ratios <- sapply(sample_texts, function(text) {
+      # 한글 문자 개수 / 전체 문자 개수
+      korean_chars <- nchar(gsub("[^가-힣]", "", text))
+      total_chars <- nchar(gsub("\\s", "", text))  # 공백 제외
+      if (total_chars == 0) return(0)
+      return(korean_chars / total_chars)
+    })
+    
+    # 평균 한글 비율이 30% 이상이면 한글 텍스트로 판단
+    avg_korean_ratio <- mean(korean_ratios, na.rm = TRUE)
+    return(avg_korean_ratio >= 0.3)
+  }
+  
+  # 각 초록 컬럼의 한글 비율 검사
+  korean_abstract_col <- NULL
+  best_score <- 0
+  
+  if (length(abstract_cols) > 0) {
+    cat("\n🔍 한글 초록 검사 결과:\n")
+    
+    # 컬럼명 우선순위 설정 (한글 초록 관련 컬럼명에 보너스)
+    get_priority_score <- function(col_name) {
+      if (grepl("국문.*초록|국문초록", col_name)) return(3)
+      if (grepl("^초록$", col_name)) return(2)
+      if (grepl("요약", col_name)) return(1)
+      return(0)  # 영문초록, Abstract 등은 보너스 없음
+    }
+    
+    for (col in abstract_cols) {
+      # 샘플 텍스트로 한글 비율 계산
+      valid_texts <- data[[col]][!is.na(data[[col]]) & nchar(data[[col]]) > 10]
+      
+      if (length(valid_texts) > 0) {
+        sample_size <- min(5, length(valid_texts))
+        sample_texts <- sample(valid_texts, sample_size)
+        
+        korean_ratios <- sapply(sample_texts, function(text) {
+          korean_chars <- nchar(gsub("[^가-힣]", "", text))
+          total_chars <- nchar(gsub("\\s", "", text))
+          if (total_chars == 0) return(0)
+          return(korean_chars / total_chars)
+        })
+        
+        avg_ratio <- mean(korean_ratios, na.rm = TRUE)
+        avg_length <- mean(nchar(valid_texts), na.rm = TRUE)
+        priority_bonus <- get_priority_score(col)
+        
+        # 종합 점수 계산: 한글비율(0.7) + 우선순위(0.2) + 길이점수(0.1)
+        length_score <- min(avg_length / 200, 1)  # 200자 기준으로 정규화
+        total_score <- avg_ratio * 0.7 + priority_bonus * 0.2 + length_score * 0.1
+        
+        status_text <- ""
+        if (priority_bonus > 0) {
+          status_text <- sprintf(" [우선순위: +%.1f]", priority_bonus)
         }
+        if (avg_ratio >= 0.3 && avg_length >= 50) {
+          status_text <- sprintf("%s ✓", status_text)
+        }
+        
+        cat(sprintf("   - %s: 한글비율 %.1f%%, 평균길이 %.0f자, 점수 %.2f%s\n", 
+                   col, avg_ratio * 100, avg_length, total_score, status_text))
+        
+        # 한글 비율이 30% 이상이고 적절한 길이인 경우만 후보로 고려
+        if (avg_ratio >= 0.3 && avg_length >= 50 && total_score > best_score) {
+          korean_abstract_col <- col
+          best_score <- total_score
+        }
+      } else {
+        cat(sprintf("   - %s: 유효한 텍스트 없음\n", col))
       }
+    }
+  }
+  
+  # 한글 초록 컬럼을 abstract로 설정
+  if (!is.null(korean_abstract_col)) {
+    if (korean_abstract_col != "abstract") {
+      names(data)[names(data) == korean_abstract_col] <- "abstract"
+    }
+    cat(sprintf("✅ 한글 초록 선택: '%s' → 'abstract' (종합점수: %.2f)\n", 
+               korean_abstract_col, best_score))
+    
+    # 다른 초록 컬럼들은 백업용으로 유지 (필요시 제거 가능)
+    other_abstract_cols <- setdiff(abstract_cols, korean_abstract_col)
+    if (length(other_abstract_cols) > 0) {
+      cat(sprintf("ℹ️ 기타 초록 컬럼들은 유지됨: %s\n", paste(other_abstract_cols, collapse = ", ")))
+    }
+    
+    return(data)
+  }
+  
+  # 한글 초록을 찾지 못한 경우, 기존 로직으로 폴백
+  cat("⚠️ 한글 초록을 찾을 수 없음. 일반 텍스트 컬럼 검색 중...\n")
+  
+  # 문자형 컬럼 중 가장 긴 텍스트를 가진 컬럼을 abstract로 가정
+  # 단, doc_id는 제외
+  char_cols <- names(data)[sapply(data, is.character)]
+  char_cols <- char_cols[char_cols != "doc_id"]  # doc_id 제외
+  
+  if (length(char_cols) > 0) {
+    max_length_col <- char_cols[1]
+    max_length <- 0
+    
+    for (col in char_cols) {
+      avg_length <- mean(nchar(data[[col]][!is.na(data[[col]])]), na.rm = TRUE)
+      # 한글 비율도 고려
+      if (is_korean_text(data[[col]]) && avg_length > max_length) {
+        max_length_col <- col
+        max_length <- avg_length
+      }
+    }
+    
+    if (max_length > 50) {  # 최소 50자 이상인 경우만
       if (max_length_col != "abstract") {
         names(data)[names(data) == max_length_col] <- "abstract"
-        cat(sprintf("✅ 텍스트 컬럼 추정: '%s' → 'abstract'\n", max_length_col))
       }
+      cat(sprintf("✅ 텍스트 컬럼 추정: '%s' → 'abstract' (평균 길이: %.0f자)\n", 
+                 max_length_col, max_length))
+    } else {
+      cat("⚠️ 적절한 한글 텍스트 컬럼을 찾을 수 없습니다.\n")
     }
   }
   
@@ -146,6 +366,13 @@ standardize_data <- function(data, verbose = TRUE) {
   # 연도 컬럼 표준화 (필요한 경우)
   if (any(grepl("연도|년도|year", names(data), ignore.case = TRUE))) {
     data <- standardize_year_column(data)
+  }
+  
+  # doc_id를 첫 번째 컬럼으로 이동
+  if ("doc_id" %in% names(data)) {
+    other_cols <- setdiff(names(data), "doc_id")
+    data <- data[, c("doc_id", other_cols)]
+    cat("✅ doc_id를 첫 번째 컬럼으로 정렬\n")
   }
   
   if (verbose) {
