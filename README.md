@@ -187,10 +187,6 @@ Yang, Y. (2025). Text Mining of Korean Academic Data using R. GitHub Repository.
 - **수익 창출** 목적 사용
 - **기업 제품/서비스**에 포함
 
-### 상업적 이용 문의
-
-별도의 상업용 라이선스에 대해 문의 바랍니다: [GitHub Issues](../../issues)
-
 ### 로그 확인
 
 분석 과정의 상세 로그는 `reports/` 폴더의 각 단계별 보고서에서 확인 가능합니다.
