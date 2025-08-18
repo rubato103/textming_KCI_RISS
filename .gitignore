@@ -49,6 +49,32 @@ claude.md
 # ========== 로그 파일 ==========
 *.log
 
+# ========== Python 관련 ==========
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
 # ========== 기타 임시 파일 ==========
 # 테스트 스크립트들
 fix_duplicate_docids.R

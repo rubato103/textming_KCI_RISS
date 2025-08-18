@@ -1,0 +1,30 @@
+# Data Processing
+pandas>=2.0.0
+numpy>=1.24.0
+openpyxl>=3.1.0  # Excel file handling
+
+# Korean NLP
+kiwipiepy>=0.14.0  # Korean morphological analyzer
+konlpy>=0.6.0  # Alternative Korean NLP toolkit
+
+# Text Mining
+scikit-learn>=1.3.0
+nltk>=3.8.0
+gensim>=4.3.0  # Topic modeling
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.14.0
+wordcloud>=1.9.0
+
+# Utilities
+tqdm>=4.65.0  # Progress bars
+python-dotenv>=1.0.0  # Environment variables
+pyyaml>=6.0  # Configuration files
+
+# Development
+jupyter>=1.0.0
+ipykernel>=6.22.0
+black>=23.0.0  # Code formatting
+pytest>=7.3.0  # Testing
