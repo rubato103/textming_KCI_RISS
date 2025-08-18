@@ -147,8 +147,73 @@ if (furrr_available) {
 # # For example, if K=10 looks good based on the metrics:
 # optimal_k <- 10
 
-# For this script, let's assume an optimal K is chosen, e.g., K=10
-optimal_k <- 10
+# 토픽 개수 선택 대화창
+cat("\n📊 토픽 개수 설정\n")
+cat(rep("-", 30), "\n")
+cat("STM 모델에서 사용할 토픽 개수를 선택하세요.\n")
+cat("- 일반적 권장 범위: 5-50개\n")
+cat("- 문서 수가 적은 경우: 5-20개\n")
+cat("- 문서 수가 많은 경우: 20-50개\n")
+cat(sprintf("- 현재 문서 수: %d개\n", length(kci_riss_stm_data$documents)))
+cat("\n")
+
+# 기본값 제안 (문서 수 기반)
+doc_count <- length(kci_riss_stm_data$documents)
+if (doc_count < 100) {
+  suggested_k <- 5
+} else if (doc_count < 500) {
+  suggested_k <- 10
+} else if (doc_count < 1000) {
+  suggested_k <- 15
+} else {
+  suggested_k <- 20
+}
+
+cat(sprintf("💡 문서 수(%d개)를 고려한 권장 토픽 수: %d개\n", doc_count, suggested_k))
+
+# 사용자 입력 받기
+repeat {
+  cat(sprintf("\n토픽 개수를 입력하세요 (기본값: %d): ", suggested_k))
+  user_input <- readline(prompt = "")
+  
+  # 빈 입력시 기본값 사용
+  if (user_input == "") {
+    optimal_k <- suggested_k
+    cat(sprintf("✅ 기본값 %d개 토픽으로 설정되었습니다.\n", optimal_k))
+    break
+  }
+  
+  # 숫자 검증
+  tryCatch({
+    optimal_k <- as.integer(user_input)
+    
+    # 범위 검증
+    if (optimal_k < 2) {
+      cat("❌ 토픽 수는 2개 이상이어야 합니다. 다시 입력해주세요.\n")
+      next
+    } else if (optimal_k > 100) {
+      cat("❌ 토픽 수는 100개 이하로 설정해주세요. 다시 입력해주세요.\n")
+      next
+    } else if (optimal_k > doc_count / 5) {
+      cat(sprintf("⚠️  문서 수(%d개) 대비 토픽 수(%d개)가 많습니다. 권장: %d개 이하\n", 
+                  doc_count, optimal_k, floor(doc_count / 5)))
+      cat("계속 진행하시겠습니까? (y/n): ")
+      confirm <- readline(prompt = "")
+      if (tolower(confirm) %in% c("y", "yes", "예", "네")) {
+        cat(sprintf("✅ %d개 토픽으로 설정되었습니다.\n", optimal_k))
+        break
+      } else {
+        cat("다시 입력해주세요.\n")
+        next
+      }
+    } else {
+      cat(sprintf("✅ %d개 토픽으로 설정되었습니다.\n", optimal_k))
+      break
+    }
+  }, error = function(e) {
+    cat("❌ 올바른 숫자를 입력해주세요.\n")
+  })
+}
 
 # 4. Run STM model ------------------------------------------------------------
 # Now, run the STM model with the chosen optimal_k
@@ -177,6 +242,317 @@ cat(sprintf("\n📋 데이터 일치성 확인:\n"))
 cat(sprintf("- STM 문서 수: %d\n", length(kci_riss_stm_data$documents)))
 cat(sprintf("- 메타데이터 행 수: %d\n", nrow(kci_riss_preprocessed_matched)))
 
+# 공변량(Covariate) 선택 대화창
+cat("\n", rep("=", 60), "\n")
+cat("📊 공변량(Covariate) 설정\n")
+cat(rep("=", 60), "\n")
+
+# 사용 가능한 메타데이터 컬럼 분석
+cat("🔍 사용 가능한 메타데이터 변수들:\n")
+meta_cols <- names(kci_riss_preprocessed_matched)
+cat(sprintf("총 %d개 변수: %s\n", length(meta_cols), paste(meta_cols, collapse = ", ")))
+
+# 공변량으로 사용 가능한 컬럼 필터링
+potential_covariates <- list()
+
+# 변수명 정리 함수 (공백, 특수문자 처리)
+clean_var_name <- function(var_name) {
+  # 공백을 밑줄로 변경
+  cleaned <- gsub("\\s+", "_", var_name)
+  # 특수문자 제거 (영문, 숫자, 밑줄만 허용)
+  cleaned <- gsub("[^a-zA-Z0-9_가-힣]", "_", cleaned)
+  # 연속된 밑줄 정리
+  cleaned <- gsub("_{2,}", "_", cleaned)
+  # 앞뒤 밑줄 제거
+  cleaned <- gsub("^_+|_+$", "", cleaned)
+  return(cleaned)
+}
+
+# 변수명 유효성 검사 함수
+is_valid_var_name <- function(var_name) {
+  # R 변수명 규칙: 문자로 시작, 공백/특수문자 없음
+  if (grepl("\\s", var_name)) return(FALSE)  # 공백 포함
+  if (grepl("[^a-zA-Z0-9_가-힣\\.]", var_name)) return(FALSE)  # 특수문자 포함
+  return(TRUE)
+}
+
+# 메타데이터 변수명 정리
+cat("🔧 변수명 정리 중...\n")
+original_names <- names(kci_riss_preprocessed_matched)
+problematic_vars <- c()
+
+for (i in 1:length(original_names)) {
+  var_name <- original_names[i]
+  if (!is_valid_var_name(var_name)) {
+    problematic_vars <- c(problematic_vars, var_name)
+    cleaned_name <- clean_var_name(var_name)
+    
+    # 중복 방지
+    if (cleaned_name %in% names(kci_riss_preprocessed_matched)) {
+      cleaned_name <- paste0(cleaned_name, "_", i)
+    }
+    
+    cat(sprintf("  '%s' → '%s'\n", var_name, cleaned_name))
+    names(kci_riss_preprocessed_matched)[i] <- cleaned_name
+  }
+}
+
+if (length(problematic_vars) > 0) {
+  cat(sprintf("✅ %d개 변수명 정리 완료\n", length(problematic_vars)))
+} else {
+  cat("✅ 모든 변수명이 유효합니다\n")
+}
+
+# 업데이트된 변수명 목록
+meta_cols <- names(kci_riss_preprocessed_matched)
+
+# 연도 관련 변수 찾기
+year_cols <- meta_cols[grepl("year|년도|연도|pub_year", meta_cols, ignore.case = TRUE)]
+if (length(year_cols) > 0) {
+  potential_covariates$year <- year_cols
+  cat(sprintf("\n📅 연도 관련 변수: %s\n", paste(year_cols, collapse = ", ")))
+}
+
+# 출처/데이터베이스 관련 변수 찾기
+source_cols <- meta_cols[grepl("source|db|database|출처|데이터베이스|KCI|RISS", meta_cols, ignore.case = TRUE)]
+if (length(source_cols) > 0) {
+  potential_covariates$source <- source_cols
+  cat(sprintf("🏛️  출처/DB 관련 변수: %s\n", paste(source_cols, collapse = ", ")))
+}
+
+# 학문분야 관련 변수 찾기
+field_cols <- meta_cols[grepl("field|category|분야|주제|영역|학문|discipline", meta_cols, ignore.case = TRUE)]
+if (length(field_cols) > 0) {
+  potential_covariates$field <- field_cols
+  cat(sprintf("🔬 학문분야 관련 변수: %s\n", paste(field_cols, collapse = ", ")))
+}
+
+# 등재구분 관련 변수 찾기
+grade_cols <- meta_cols[grepl("grade|등재|구분|level|tier", meta_cols, ignore.case = TRUE)]
+if (length(grade_cols) > 0) {
+  potential_covariates$grade <- grade_cols
+  cat(sprintf("⭐ 등재구분 관련 변수: %s\n", paste(grade_cols, collapse = ", ")))
+}
+
+# 기타 범주형 변수 찾기 (문자형 변수들)
+other_categorical <- c()
+for (col in meta_cols) {
+  if (col %in% c(year_cols, source_cols, field_cols, grade_cols)) next
+  
+  if (is.character(kci_riss_preprocessed_matched[[col]]) || is.factor(kci_riss_preprocessed_matched[[col]])) {
+    unique_values <- length(unique(kci_riss_preprocessed_matched[[col]], na.rm = TRUE))
+    total_values <- nrow(kci_riss_preprocessed_matched)
+    
+    # 범주형으로 적합한 조건: 고유값이 전체의 20% 이하이고 2-50개 사이
+    if (unique_values >= 2 && unique_values <= 50 && unique_values/total_values <= 0.2) {
+      other_categorical <- c(other_categorical, col)
+    }
+  }
+}
+
+if (length(other_categorical) > 0) {
+  potential_covariates$other <- other_categorical
+  cat(sprintf("📊 기타 범주형 변수: %s\n", paste(other_categorical, collapse = ", ")))
+}
+
+cat("\n", rep("-", 40), "\n")
+
+# 공변량 사용 여부 선택
+cat("📝 공변량 사용 옵션:\n")
+cat("1. 공변량 없음 (순수 토픽 모델링)\n")
+cat("2. 공변량 사용 (토픽 분포에 영향을 주는 변수 포함)\n")
+cat("\n💡 공변량의 효과:\n")
+cat("- Prevalence 공변량: 토픽의 출현 빈도에 영향 (예: 연도별 토픽 변화)\n")
+cat("- Content 공변량: 토픽 내 단어 분포에 영향 (예: 출처별 용어 차이)\n")
+cat("\n⚠️  주의사항:\n")
+cat("- 공변량 사용 시 계산 시간이 증가할 수 있습니다\n")
+cat("- 변수명에 공백이나 특수문자가 있으면 자동으로 정리됩니다\n")
+cat("- 범주형 변수는 고유값이 2-50개 사이여야 합니다\n")
+
+# 사용자 선택
+repeat {
+  cat("\n공변량을 사용하시겠습니까? (1: 없음, 2: 사용): ")
+  use_covariate <- readline(prompt = "")
+  
+  if (use_covariate %in% c("1", "없음", "no", "n")) {
+    use_prevalence <- FALSE
+    prevalence_formula <- NULL
+    content_formula <- NULL
+    cat("✅ 순수 토픽 모델링으로 설정되었습니다. (공변량 없음)\n")
+    break
+  } else if (use_covariate %in% c("2", "사용", "yes", "y")) {
+    use_prevalence <- TRUE
+    cat("✅ 공변량을 사용한 토픽 모델링으로 설정되었습니다.\n")
+    break
+  } else {
+    cat("❌ 1 또는 2를 입력해주세요.\n")
+  }
+}
+
+# 공변량 사용하는 경우 상세 설정
+if (use_prevalence) {
+  cat("\n", rep("-", 40), "\n")
+  cat("🔧 공변량 상세 설정\n")
+  
+  # Prevalence 공변량 선택
+  cat("\n📈 Prevalence 공변량 선택 (토픽 분포에 영향):\n")
+  
+  if (length(potential_covariates) == 0) {
+    cat("⚠️ 적합한 공변량을 찾을 수 없습니다. 순수 토픽 모델링으로 진행합니다.\n")
+    use_prevalence <- FALSE
+    prevalence_formula <- NULL
+    content_formula <- NULL
+  } else {
+    # 권장 조합 제시
+    cat("\n💡 권장 공변량 조합:\n")
+    recommendation_count <- 1
+    
+    # 연도 + 출처 조합
+    if (length(year_cols) > 0 && length(source_cols) > 0) {
+      cat(sprintf("%d. 시간적 변화 분석: %s + %s\n", 
+                  recommendation_count, year_cols[1], source_cols[1]))
+      recommendation_count <- recommendation_count + 1
+    }
+    
+    # 연도만
+    if (length(year_cols) > 0) {
+      cat(sprintf("%d. 시계열 분석: %s\n", recommendation_count, year_cols[1]))
+      recommendation_count <- recommendation_count + 1
+    }
+    
+    # 출처 + 분야 조합
+    if (length(source_cols) > 0 && length(field_cols) > 0) {
+      cat(sprintf("%d. 출처별 분야 비교: %s + %s\n", 
+                  recommendation_count, source_cols[1], field_cols[1]))
+      recommendation_count <- recommendation_count + 1
+    }
+    
+    # 등재구분 + 분야 조합
+    if (length(grade_cols) > 0 && length(field_cols) > 0) {
+      cat(sprintf("%d. 등재등급별 분야 분석: %s + %s\n", 
+                  recommendation_count, grade_cols[1], field_cols[1]))
+      recommendation_count <- recommendation_count + 1
+    }
+    
+    cat(sprintf("%d. 사용자 정의\n", recommendation_count))
+    cat(sprintf("%d. 공변량 없음으로 변경\n", recommendation_count + 1))
+    
+    # 선택 받기
+    repeat {
+      cat(sprintf("\n선택하세요 (1-%d): ", recommendation_count + 1))
+      choice <- readline(prompt = "")
+      
+      choice_num <- suppressWarnings(as.integer(choice))
+      
+      if (is.na(choice_num) || choice_num < 1 || choice_num > (recommendation_count + 1)) {
+        cat("❌ 올바른 번호를 입력해주세요.\n")
+        next
+      }
+      
+      if (choice_num == (recommendation_count + 1)) {
+        # 공변량 없음으로 변경
+        use_prevalence <- FALSE
+        prevalence_formula <- NULL
+        content_formula <- NULL
+        cat("✅ 공변량 없음으로 변경되었습니다.\n")
+        break
+      } else if (choice_num == recommendation_count) {
+        # 사용자 정의
+        cat("\n🛠️ 사용자 정의 공변량 설정\n")
+        cat("사용 가능한 변수들:\n")
+        
+        all_suitable_vars <- c()
+        if (length(year_cols) > 0) all_suitable_vars <- c(all_suitable_vars, year_cols)
+        if (length(source_cols) > 0) all_suitable_vars <- c(all_suitable_vars, source_cols)
+        if (length(field_cols) > 0) all_suitable_vars <- c(all_suitable_vars, field_cols)
+        if (length(grade_cols) > 0) all_suitable_vars <- c(all_suitable_vars, grade_cols)
+        if (length(other_categorical) > 0) all_suitable_vars <- c(all_suitable_vars, other_categorical)
+        
+        for (i in 1:length(all_suitable_vars)) {
+          var_name <- all_suitable_vars[i]
+          unique_count <- length(unique(kci_riss_preprocessed_matched[[var_name]], na.rm = TRUE))
+          cat(sprintf("%d. %s (고유값 %d개)\n", i, var_name, unique_count))
+        }
+        
+        cat("\n변수 번호를 선택하세요 (쉼표로 구분, 예: 1,3): ")
+        var_choice <- readline(prompt = "")
+        
+        tryCatch({
+          selected_indices <- as.integer(strsplit(var_choice, ",")[[1]])
+          selected_vars <- all_suitable_vars[selected_indices]
+          
+          if (any(is.na(selected_indices)) || any(selected_indices < 1) || any(selected_indices > length(all_suitable_vars))) {
+            cat("❌ 올바른 번호를 입력해주세요.\n")
+            next
+          }
+          
+          # 변수명을 백틱으로 감싸기 (공식 파싱 오류 방지)
+          safe_vars <- sapply(selected_vars, function(var) {
+            if (grepl("\\s|[^a-zA-Z0-9_\\.]", var) || !is_valid_var_name(var)) {
+              return(paste0("`", var, "`"))
+            } else {
+              return(var)
+            }
+          })
+          
+          prevalence_formula_str <- paste(safe_vars, collapse = " + ")
+          prevalence_formula <- as.formula(paste("~", prevalence_formula_str))
+          content_formula <- NULL
+          
+          cat(sprintf("✅ Prevalence 공식 설정: %s\n", prevalence_formula_str))
+          break
+          
+        }, error = function(e) {
+          cat("❌ 입력 형식이 올바르지 않습니다.\n")
+        })
+        
+      } else {
+        # 권장 조합 선택 - 변수명 안전 처리 함수
+        make_safe_var <- function(var) {
+          if (grepl("\\s|[^a-zA-Z0-9_\\.]", var) || !is_valid_var_name(var)) {
+            return(paste0("`", var, "`"))
+          } else {
+            return(var)
+          }
+        }
+        
+        if (choice_num == 1 && length(year_cols) > 0 && length(source_cols) > 0) {
+          safe_year <- make_safe_var(year_cols[1])
+          safe_source <- make_safe_var(source_cols[1])
+          prevalence_formula <- as.formula(paste("~", safe_year, "+", safe_source))
+          cat(sprintf("✅ 시간적 변화 분석 공식 적용: ~ %s + %s\n", safe_year, safe_source))
+        } else if ((choice_num == 1 && length(source_cols) == 0) || (choice_num == 2 && length(source_cols) > 0)) {
+          # 연도만 있는 경우 또는 두 번째 선택
+          if (length(year_cols) > 0) {
+            safe_year <- make_safe_var(year_cols[1])
+            prevalence_formula <- as.formula(paste("~", safe_year))
+            cat(sprintf("✅ 시계열 분석 공식 적용: ~ %s\n", safe_year))
+          }
+        } else if (length(source_cols) > 0 && length(field_cols) > 0) {
+          safe_source <- make_safe_var(source_cols[1])
+          safe_field <- make_safe_var(field_cols[1])
+          prevalence_formula <- as.formula(paste("~", safe_source, "+", safe_field))
+          cat(sprintf("✅ 출처별 분야 비교 공식 적용: ~ %s + %s\n", safe_source, safe_field))
+        } else if (length(grade_cols) > 0 && length(field_cols) > 0) {
+          safe_grade <- make_safe_var(grade_cols[1])
+          safe_field <- make_safe_var(field_cols[1])
+          prevalence_formula <- as.formula(paste("~", safe_grade, "+", safe_field))
+          cat(sprintf("✅ 등재등급별 분야 분석 공식 적용: ~ %s + %s\n", safe_grade, safe_field))
+        } else {
+          cat("❌ 해당 조합의 변수를 찾을 수 없습니다.\n")
+          next
+        }
+        
+        content_formula <- NULL
+        break
+      }
+    }
+  }
+} else {
+  prevalence_formula <- NULL
+  content_formula <- NULL
+}
+
 # 문서 수와 메타데이터 행 수가 다른 경우 조정
 if (length(kci_riss_stm_data$documents) != nrow(kci_riss_preprocessed_matched)) {
   cat("⚠️ 문서 수와 메타데이터 행 수 불일치 감지. 조정 중...\n")
@@ -193,33 +569,75 @@ if (length(kci_riss_stm_data$documents) != nrow(kci_riss_preprocessed_matched)) 
   cat(sprintf("✅ 조정 완료: %d개 문서로 통일\n", min_size))
 }
 
-# 공변량 처리 비활성화 설정
-cat("\n📊 순수 토픽 모델링 설정\n")
-cat("ℹ️  공변량(covariate) 없이 순수 토픽 모델링만 수행합니다.\n")
-
-# 공변량 사용 비활성화
-use_prevalence <- FALSE
-prevalence_formula <- NULL
-
-cat("✅ prevalence 공식 없이 STM 실행 (순수 토픽 모델링)\n")
-
-# STM 모델 실행 (메타데이터 활용)
+# STM 모델 실행
 cat("\n🔨 STM 토픽 모델링 실행 중...\n")
 cat(sprintf("- 토픽 수: %d\n", optimal_k))
 cat(sprintf("- 문서 수: %d\n", length(kci_riss_stm_data$documents)))
 cat(sprintf("- 어휘 수: %d\n", length(kci_riss_stm_data$vocab)))
 cat(sprintf("- 메타데이터 행 수: %d\n", nrow(kci_riss_preprocessed_matched)))
 
-# 공변량 없이 순수 토픽 모델링만 실행
-kci_riss_stm_model <- stm(
-  documents = kci_riss_stm_data$documents,
-  vocab = kci_riss_stm_data$vocab,
-  K = optimal_k,
-  max.em.its = 500,  # 올바른 파라미터명
-  init.type = "Spectral",
-  seed = 848,
-  verbose = TRUE
-)
+if (use_prevalence && !is.null(prevalence_formula)) {
+  cat(sprintf("- 공변량 사용: %s\n", deparse(prevalence_formula)))
+  cat("⏰ 공변량 포함 모델링은 시간이 더 오래 걸릴 수 있습니다...\n")
+  
+  # 공변량 포함 STM 모델 실행 (오류 처리 포함)
+  tryCatch({
+    kci_riss_stm_model <- stm(
+      documents = kci_riss_stm_data$documents,
+      vocab = kci_riss_stm_data$vocab,
+      K = optimal_k,
+      prevalence = prevalence_formula,
+      data = kci_riss_preprocessed_matched,
+      max.em.its = 500,
+      init.type = "Spectral",
+      seed = 848,
+      verbose = TRUE
+    )
+    
+    cat("✅ 공변량을 포함한 STM 모델 실행 완료\n")
+    
+  }, error = function(e) {
+    cat(sprintf("❌ 공변량 포함 STM 모델 실행 실패: %s\n", e$message))
+    cat("🔄 순수 토픽 모델링으로 대체 실행합니다...\n")
+    
+    # 공변량 없이 재시도
+    use_prevalence <<- FALSE
+    prevalence_formula <<- NULL
+    
+    kci_riss_stm_model <<- stm(
+      documents = kci_riss_stm_data$documents,
+      vocab = kci_riss_stm_data$vocab,
+      K = optimal_k,
+      max.em.its = 500,
+      init.type = "Spectral",
+      seed = 848,
+      verbose = TRUE
+    )
+    
+    cat("✅ 대체 실행 완료 (순수 토픽 모델링)\n")
+  })
+  
+} else {
+  cat("- 공변량 사용: 없음 (순수 토픽 모델링)\n")
+  
+  # 공변량 없이 순수 토픽 모델링 실행
+  tryCatch({
+    kci_riss_stm_model <- stm(
+      documents = kci_riss_stm_data$documents,
+      vocab = kci_riss_stm_data$vocab,
+      K = optimal_k,
+      max.em.its = 500,
+      init.type = "Spectral",
+      seed = 848,
+      verbose = TRUE
+    )
+    
+    cat("✅ 순수 토픽 모델링 실행 완료\n")
+    
+  }, error = function(e) {
+    stop(sprintf("❌ STM 모델 실행 실패: %s\n데이터나 설정을 확인해주세요.", e$message))
+  })
+}
 
 # 5. Analyze STM results ------------------------------------------------------
 
@@ -262,10 +680,37 @@ tryCatch({
   cat(sprintf("⚠️ 토픽 라벨 시각화 오류: %s\n", e$message))
 })
 
-# 토픽 효과 분석 비활성화
-cat("\n📊 순수 토픽 모델링 결과 분석\n")
-cat("ℹ️  공변량 효과 분석은 수행하지 않습니다.\n")
-topic_prevalence <- NULL
+# 토픽 효과 분석 (공변량이 있는 경우에만)
+if (use_prevalence && !is.null(prevalence_formula)) {
+  cat("\n📊 토픽 효과 분석 (공변량 기반)\n")
+  cat(sprintf("ℹ️  공변량 %s의 토픽 분포 영향을 분석합니다.\n", deparse(prevalence_formula)))
+  
+  tryCatch({
+    # 공변량별 토픽 확률 추정
+    topic_prevalence <- estimateEffect(
+      formula.rhs = prevalence_formula, 
+      stmobj = kci_riss_stm_model, 
+      metadata = kci_riss_preprocessed_matched,
+      uncertainty = "Global"
+    )
+    
+    cat("✅ 토픽 효과 분석 완료\n")
+    
+    # 주요 효과 요약 출력
+    cat("\n📈 공변량별 토픽 효과 요약:\n")
+    print(summary(topic_prevalence))
+    
+  }, error = function(e) {
+    cat(sprintf("⚠️ 토픽 효과 분석 오류: %s\n", e$message))
+    cat("순수 토픽 모델링 결과만 제공합니다.\n")
+    topic_prevalence <- NULL
+  })
+  
+} else {
+  cat("\n📊 순수 토픽 모델링 결과 분석\n")
+  cat("ℹ️  공변량 효과 분석은 수행하지 않습니다.\n")
+  topic_prevalence <- NULL
+}
 
 # Extract topic proportions for each document
 cat("\n📑 문서별 토픽 비율 매트릭스 생성 중...\n")
@@ -723,16 +1168,34 @@ for (i in 1:length(topic_dist)) {
 }
 
 # 시간적 변화 분석 (prevalence 결과 기반)
-temporal_section <- "
+if (!is.null(topic_prevalence)) {
+  temporal_section <- "
 
 ---
 
-## 📊 시간적 변화 분석
+## 📊 공변량 효과 분석
+
+### 토픽 분포에 대한 공변량 영향
+- 공변량을 활용한 토픽 분포 변화 분석 수행
+- 주요 공변량별 토픽 출현 패턴 확인
+- 통계적 유의성을 고려한 효과 해석
+
+### 주요 발견점
+[estimateEffect 결과에 기반한 구체적 분석 내용]
+"
+} else {
+  temporal_section <- "
+
+---
+
+## 📊 토픽 분포 분석
 
 ### 순수 토픽 모델링 결과
 - 공변량 분석 없이 순수 토픽 분포만 분석
-- 시간적 변화 분석은 수행하지 않음
+- 각 토픽의 상대적 중요도와 분포 특성 파악
+- 토픽 간 상호관계 및 특성 분석
 "
+}
 
 # 결론 및 제언
 conclusion_section <- "
@@ -812,7 +1275,11 @@ top3_concentration <- sum(topic_props[topic_order[1:min(3, optimal_k)]]) * 100
 topic_balance <- ifelse(max_prop / min_prop < 5, "균형적", "불균형적")
 
 # 시간적 동향 요약
-temporal_summary <- "공변량 분석 없이 순수 토픽 분포만 분석"
+if (!is.null(topic_prevalence)) {
+  temporal_summary <- sprintf("공변량 %s 기반 토픽 분포 변화 분석 완료", deparse(prevalence_formula))
+} else {
+  temporal_summary <- "공변량 분석 없이 순수 토픽 분포만 분석"
+}
 
 # 균형성 평가
 balance_assessment <- ifelse(topic_balance == "균형적", 

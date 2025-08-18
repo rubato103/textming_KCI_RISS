@@ -2,11 +2,43 @@
 # ========== 패키지 설치 및 로드 ==========
 cat("========== 개선된 접두사/접미사 처리 - 전체 데이터 분석 시작 ==========\n")
 
-library(reticulate)
-library(dplyr)
-library(tidyr)
-library(stringr)
-library(parallel)
+packages <- c("reticulate", "dplyr", "tidyr", "stringr", "parallel")
+
+# CRAN 미러 목록 (우선순위 순)
+cran_mirrors <- c(
+  "https://cran.rstudio.com/",           # RStudio 공식 (전세계)
+  "https://cloud.r-project.org/",        # R 공식 클라우드
+  "https://cran.seoul.go.kr/",           # 서울시 (한국)
+  "https://cran.r-project.org/"          # R 공식 (기본)
+)
+
+# 패키지 설치 함수 (미러 자동 전환)
+install_with_fallback <- function(pkg_name) {
+  for (mirror in cran_mirrors) {
+    tryCatch({
+      cat("시도 중인 미러:", mirror, "\n")
+      install.packages(pkg_name, repos = mirror, quiet = TRUE)
+      cat("✅", pkg_name, "설치 완료\n")
+      return(TRUE)
+    }, error = function(e) {
+      cat("❌ 미러", mirror, "실패:", conditionMessage(e), "\n")
+      return(FALSE)
+    })
+  }
+  stop("모든 CRAN 미러에서", pkg_name, "설치 실패")
+}
+
+# 패키지 확인 및 설치
+for (pkg in packages) {
+  if (!require(pkg, character.only = TRUE, quietly = TRUE)) {
+    cat("📦", pkg, "패키지가 설치되지 않았습니다. 설치 중...\n")
+    install_with_fallback(pkg)
+    library(pkg, character.only = TRUE)
+    cat("✅", pkg, "로드 완료\n")
+  } else {
+    cat("✓", pkg, "이미 설치되어 있습니다.\n")
+  }
+}
 
 # 설정 및 유틸리티 함수 로드 (00_ 접두사로 보호됨)
 if (file.exists("scripts/00_config.R")) {
