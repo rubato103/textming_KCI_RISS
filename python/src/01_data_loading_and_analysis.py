@@ -106,6 +106,9 @@ class DataLoader:
             data_frames = [self.load_excel_file(f) for f in file_list]
             combined_data = pd.concat(data_frames, ignore_index=True)
         
+        # 🐛 디버그 포인트: 데이터 로드 완료 후 확인
+        print(f"DEBUG: 데이터 shape = {combined_data.shape}")  # 브레이크포인트 추천
+        
         return combined_data
 
 
